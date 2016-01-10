@@ -1,0 +1,18 @@
+{
+	"Name":"Sutra",
+	"Brand":"Kona",
+	"Year":2015,
+	"Components":[
+	{
+		"Name":"SuperCrankSet",
+		"Brand":"Shimano",
+		"Type": "Crank Set"
+	},
+	{
+		"Name":"40.ZS44 SHORT COVER",
+		"Brand":"Cane Creek",
+		"Type": "Head Set"
+	}
+	]
+
+}
