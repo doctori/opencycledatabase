@@ -6,12 +6,14 @@
 	{
 		"Name":"SuperCrankSet",
 		"Brand":"Shimano",
-		"Type": "Crank Set"
+		"Type": "Crank Set",
+		"Year": 2015
 	},
 	{
 		"Name":"40.ZS44 SHORT COVER",
 		"Brand":"Cane Creek",
-		"Type": "Head Set"
+		"Type": "Head Set",
+		"Year": 2015
 	}
 	]
 

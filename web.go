@@ -7,8 +7,10 @@ import (
 func main() {
 	var api = new(API)
 	bike := new(Bike)
-	api.AddResource(bike,"/bike")
-	fmt.Printf("Listening To :8080")
-	api.Start(8080)
+	component := new(Component)
+	api.AddResource(bike,"/bikes")
+	api.AddResource(component, "/components")
+	fmt.Printf("Listening To :8080 \n")
+	api.Start("0.0.0.0",8080)
 	
 }

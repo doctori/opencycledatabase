@@ -5,6 +5,8 @@ import (
     "fmt"
     "net/http"
     "net/url"
+    "log"
+    "io"
 )
 const (
     GET    = "GET"
@@ -15,7 +17,7 @@ const (
 
 type Resource interface {
     Get(values url.Values) (int, interface{})
-    Post(values url.Values) (int, interface{})
+    Post(values url.Values,body io.ReadCloser) (int, interface{})
     Put(values url.Values) (int, interface{})
     Delete(values url.Values) (int, interface{})
 }
@@ -31,7 +33,7 @@ func (GetNotSupported) Get(values url.Values) (int, interface{}) {
     return 405, ""
 }
 
-func (PostNotSupported) Post(values url.Values) (int, interface{}) {
+func (PostNotSupported) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
     return 405, ""
 }
 
@@ -57,12 +59,13 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 	    method := request.Method // Get HTTP Method (string)
 	    request.ParseForm()      // Populates request.Form
 	    values := request.Form
-
+	    body := request.Body
+	    fmt.Printf("Received: %s with args : \n\t %+v\n",method, values)
 	    switch method {
 		    case "GET":
 		        code, data = resource.Get(values)
 		    case "POST":
-		        code, data = resource.Post(values)
+		        code, data = resource.Post(values,body)
 		    case "PUT":
 		        code, data = resource.Put(values)
 		    case "DELETE":
@@ -81,7 +84,7 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 func (api *API) AddResource(resource Resource, path string) {
     http.HandleFunc(path, api.requestHandler(resource))
 }
-func (api *API) Start(port int) {
-    portString := fmt.Sprintf(":%d", port)
-    http.ListenAndServe(portString, nil)
+func (api *API) Start(inetaddr string, port int) {
+    portString := fmt.Sprintf("%s:%d",inetaddr, port)
+    log.Fatal(http.ListenAndServe(portString, nil))
 }
