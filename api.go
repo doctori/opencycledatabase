@@ -77,6 +77,7 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 	    if err != nil {
 	        api.Abort(rw, 500)
 	    }
+	    rw.Header().Set("Content-Type","text/json; charset=utf-8")
 	    rw.WriteHeader(code)
 	    rw.Write(content)
 	}

@@ -13,6 +13,7 @@ type Bike struct {
 	Brand string
 	Year int
 	Components []Component
+	SupportedStandard []Standard
     PutNotSupported
     DeleteNotSupported
 }
@@ -20,13 +21,18 @@ type Component struct {
 	Name string
 	Brand string
 	Type string
-	Standard string
+	Standards []Standard 
 	Year int
 	PostNotSupported
 	PutNotSupported
 	DeleteNotSupported
 }
-
+type Standard struct {
+	Name string
+	Country string
+	Code string
+	Type string
+}
 
 func (b Bike) save() (error) {
 	filename := "db/"+b.Name + ".json"
