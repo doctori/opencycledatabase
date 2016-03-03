@@ -18,7 +18,7 @@ const (
 type Resource interface {
     Get(values url.Values) (int, interface{})
     Post(values url.Values,body io.ReadCloser) (int, interface{})
-    Put(values url.Values) (int, interface{})
+    Put(values url.Values,body io.ReadCloser) (int, interface{})
     Delete(values url.Values) (int, interface{})
 }
 
@@ -37,7 +37,7 @@ func (PostNotSupported) Post(values url.Values, body io.ReadCloser) (int, interf
     return 405, ""
 }
 
-func (PutNotSupported) Put(values url.Values) (int, interface{}) {
+func (PutNotSupported) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
     return 405, ""
 }
 
@@ -67,7 +67,7 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 		    case "POST":
 		        code, data = resource.Post(values,body)
 		    case "PUT":
-		        code, data = resource.Put(values)
+		        code, data = resource.Put(values,body)
 		    case "DELETE":
 		        code, data = resource.Delete(values)
 		    default:

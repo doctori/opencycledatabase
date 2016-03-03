@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"io"
+	"os"
 	"log"
 	"net/url"
 	"fmt"
+	"github.com/satori/go.uuid"
 )
 type Bike struct {
 	Name string
@@ -18,16 +20,17 @@ type Bike struct {
     DeleteNotSupported
 }
 type Component struct {
+	Id string
 	Name string
 	Brand string
 	Type string
 	Standards []Standard 
 	Year int
-	PostNotSupported
 	PutNotSupported
 	DeleteNotSupported
 }
 type Standard struct {
+	Id string
 	Name string
 	Country string
 	Code string
@@ -75,8 +78,92 @@ func (Bike) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
 func (Bike) addComponent(bike Bike, component Component) {
 
 }
+
+func (Standard) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
+	fmt.Printf("Received args : \n\t %+v\n", values)
+	decoder := json.NewDecoder(body)
+	var standard Standard
+	err := decoder.Decode(&standard)
+	if err != nil {
+    	panic("shiit")
+	}
+	log.Println(standard)
+	err,standard = standard.save()
+	if (err != nil){
+		return 500, "Could Not Save the Standard"
+	}
+   	return 200,standard
+}
+
+func (Standard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
+	fmt.Printf("Received args : \n\t %+v\n", values)
+	decoder := json.NewDecoder(body)
+	var standard Standard
+	err := decoder.Decode(&standard)
+	if err != nil {
+    	panic("shiit")
+	}
+	log.Println(standard)
+	err,standard = standard.save()
+	if (err != nil){
+		return 500, "Could Not Save the Standard"
+	}
+   	return 200,standard
+}
+func (Standard) Get(values url.Values) (int, interface{}) {
+	filename := "db/standard_" + values.Get("name") + ".json"
+	jsonBlob, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return 404, "404 Standard Not Found"
+	}
+	var s Standard
+	if( json.Unmarshal(jsonBlob, &s)	!= nil){
+		return 500, ""
+	} 
+
+	return 200,s
+}
+func (Standard) Delete(values url.Values) (int, interface{}) {
+	filename := "db/standard_" + values.Get("name") + ".json"
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return 404, "404 Standard Not Found"
+	}
+	if( os.Remove(filename)	!= nil){
+		return 500, "Could not Delete the Standard"
+	}
+	return 200,""
+}
+func (s Standard) save() (error, Standard){
+	filename := "db/standard_"+s.Name + ".json"
+	if (s.Id == ""){
+		s.Id = uuid.NewV4().String()
+	}
+	jsonBlob, err := json.Marshal(s)
+	if (err != nil ){
+		return err,s
+	}
+	err = ioutil.WriteFile(filename, jsonBlob, 0600)
+	return err,s
+}
+
+func (Component) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
+	fmt.Printf("Received args : \n\t %+v\n", body)
+	decoder := json.NewDecoder(body)
+	var component Component
+	err := decoder.Decode(&component)
+	if err != nil {
+    	panic("shiit")
+	}
+	log.Println(component)
+	err,component = component.save()
+	if (err != nil){
+		return 500, "Could Not Save the Component"
+	}
+   	return 200,component
+}
+
 func (Component) Get(values url.Values) (int, interface{}) {
-	filename := "db/"+values.Get("name") + ".json"
+	filename := "db/component_"+values.Get("name") + ".json"
 	jsonBlob, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return 404, "404 Component not Found"
@@ -86,5 +173,18 @@ func (Component) Get(values url.Values) (int, interface{}) {
 		return 500, ""
 	}
 	return 200,component
+}
 
+func (c Component) save() (error, Component){
+	filename := "db/component_"+c.Name + ".json"
+	if (c.Id == ""){
+		c.Id = uuid.NewV4().String()
+	}
+	jsonBlob, err := json.Marshal(c)
+	if (err != nil ){
+		return err,c
+	}
+	// Retrieve the Supported Standard ? OR not !
+	err = ioutil.WriteFile(filename, jsonBlob, 0600)
+	return err,c
 }
