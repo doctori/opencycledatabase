@@ -7,7 +7,9 @@ import (
 	"os"
 	"log"
 	"net/url"
+	"strings"
 	"fmt"
+	"path/filepath"
 	"github.com/satori/go.uuid"
 )
 type Bike struct {
@@ -38,15 +40,43 @@ type Standard struct {
 }
 
 func (b Bike) save() (error) {
-	filename := "db/"+b.Name + ".json"
+	filename := "db/bike_"+b.Name + ".json"
 	jsonBlob, err := json.Marshal(b)
 	if (err != nil ){
 		return err
 	}
 	return ioutil.WriteFile(filename, jsonBlob, 0600)
 }
+
+func GetAllBikes()(interface{}){
+	var bikes []Bike
+	files, err := ioutil.ReadDir("db/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, file := range files {
+		if (strings.Index(file.Name(),"bike_") == 0 ) {
+			absPath, err := filepath.Abs("db/"+file.Name())
+			jsonBlob, err := ioutil.ReadFile(absPath)
+			if err != nil {
+				return err
+			}
+			var bike Bike
+			if( json.Unmarshal(jsonBlob, &bike)	!= nil) {
+				return ""
+			}
+			bikes = append(bikes,bike)
+			fmt.Println(file.Name())
+		}
+		
+	}
+	return bikes
+}
 func (Bike) Get(values url.Values) (int, interface{}) {
-	filename := "db/" + values.Get("name") + ".json"
+	if values.Get("name") == "" {
+		return 200,GetAllBikes();
+	}
+	filename := "db/bike_" + values.Get("name") + ".json"
 	jsonBlob, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return 404, "404 Bike Not Found"
@@ -60,12 +90,12 @@ func (Bike) Get(values url.Values) (int, interface{}) {
 }
 
 func (Bike) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
-		fmt.Printf("Received args : \n\t %+v\n", values)
 		decoder := json.NewDecoder(body)
     	var bike Bike
     	err := decoder.Decode(&bike)
     	if err != nil {
-        	panic("shiit")
+        	panic(err)
+        	return 500, "Internal Error"
     	}
     	log.Println(bike)
 		err = bike.save()
