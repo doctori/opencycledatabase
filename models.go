@@ -106,7 +106,8 @@ func (Bike) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
 
 	}
 func (Bike) addComponent(bike Bike, component Component) {
-
+	bike.Components = append(bike.Components,component)
+	bike.save()
 }
 
 func (Standard) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
