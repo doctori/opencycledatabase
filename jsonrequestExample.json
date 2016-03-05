@@ -1,0 +1,35 @@
+{
+	"Name":"Sutra",
+    "Brand":"Kona",
+    "Year":2015,
+    "Components": [
+    	{
+			"Name":"BB30",
+		    "Brand":"Shimano",
+		    "Type":"Bottom Bracket",
+		    "Standards":[
+		    	{
+		        	"Name":"HollowTech 2",
+		            "Country":"Int.",
+		            "Code":"0000133",
+		            "Type":"Bottom Bracket"
+		        }
+		    ],
+		    "Year":2013
+		},
+		{
+			"Name":"105",
+		    "Brand":"Shimano",
+		    "Type":"Rear Derailler",
+		    "Standards":[
+		    	{
+					"Name": "Truc Standard Rear Derailler",
+				    "Country":"Int",
+				    "Code":"343K",
+				    "Type":"Rear Derailler"
+				}
+			],
+			"Year":2012
+		}
+	]
+}
