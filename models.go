@@ -109,6 +109,14 @@ func (Bike) addComponent(bike Bike, component Component) {
 	bike.Components = append(bike.Components,component)
 	bike.save()
 }
+func (Bike) getCompatibleComponents(bike Bike) ([]Component){
+	var compatibleComponents []Component
+	// Get The Components, Get their Standards
+
+	// Get All the Components supporting those standards
+	// Return Thems
+	return compatibleComponents
+}
 
 func (Standard) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
 	fmt.Printf("Received args : \n\t %+v\n", values)
@@ -205,7 +213,44 @@ func (Component) Get(values url.Values) (int, interface{}) {
 	}
 	return 200,component
 }
-
+func (Component) getAll() ([]Component) {
+	var components []Component
+	files, err := ioutil.ReadDir("db/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, file := range files {
+		if (strings.Index(file.Name(),"component_") == 0 ) {
+			absPath, err := filepath.Abs("db/"+file.Name())
+			jsonBlob, err := ioutil.ReadFile(absPath)
+			if err != nil {
+				panic(err)
+			}
+			var c Component
+			if( json.Unmarshal(jsonBlob, &c)	!= nil) {
+				panic("Could not Unmarshal !")
+			}
+			components = append(components,c)
+			fmt.Println(file.Name())
+		}		
+	}
+	return components
+}
+// Return Components Compatibles with a standards
+func (Component) getCompatible(s Standard)([]Component){
+	var compatibleComponents []Component
+	// Crado Way
+	c := new (Component)
+	components := c.getAll()
+	for _, component := range components {
+		for _, standard := range component.Standards {
+			if standard == s {
+				compatibleComponents = append(compatibleComponents, component)
+			}
+		}
+	}
+	return compatibleComponents
+}
 func (c Component) save() (error, Component){
 	filename := "db/component_"+c.Name + ".json"
 	if (c.Id == ""){
