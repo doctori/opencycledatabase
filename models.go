@@ -7,10 +7,10 @@ import (
 	"os"
 	"log"
 	"net/url"
-	"strings"
 	"fmt"
-	"path/filepath"
 	"github.com/satori/go.uuid"
+	"labix.org/v2/mgo"
+	"gopkg.in/mgo.v2/bson"
 )
 type Bike struct {
 	Name string
@@ -38,53 +38,50 @@ type Standard struct {
 	Code string
 	Type string
 }
-
+var session, _  = mgo.Dial("mongodb://127.0.0.1/OpenBicycleDatabase")
+	
 func (b Bike) save() (error) {
-	filename := "db/bike_"+b.Name + ".json"
-	jsonBlob, err := json.Marshal(b)
-	if (err != nil ){
-		return err
+
+	bikeCollection := session.DB("OpenBicycleDatabase").C("bikes")
+	// Check if element exits
+	filter := bson.M{"name":b.Name}
+	bike, err := bikeCollection.Upsert(filter,b)
+	if err != nil {
+		panic(err)
 	}
-	return ioutil.WriteFile(filename, jsonBlob, 0600)
+	fmt.Printf("Received upsert : \n\t %+v\n", bike)
+	//bike already exists, let's update it
+	return err
 }
 
 func GetAllBikes()(interface{}){
+	
 	var bikes []Bike
-	files, err := ioutil.ReadDir("db/")
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, file := range files {
-		if (strings.Index(file.Name(),"bike_") == 0 ) {
-			absPath, err := filepath.Abs("db/"+file.Name())
-			jsonBlob, err := ioutil.ReadFile(absPath)
-			if err != nil {
-				return err
-			}
-			var bike Bike
-			if( json.Unmarshal(jsonBlob, &bike)	!= nil) {
-				return ""
-			}
-			bikes = append(bikes,bike)
-			fmt.Println(file.Name())
-		}
-		
-	}
+	bikeCollection := session.DB("OpenBicycleDatabase").C("bikes")
+	bikeCollection.Find(bson.M{}).All(&bikes)
 	return bikes
 }
 func (Bike) Get(values url.Values) (int, interface{}) {
 	if values.Get("name") == "" {
 		return 200,GetAllBikes();
 	}
-	filename := "db/bike_" + values.Get("name") + ".json"
-	jsonBlob, err := ioutil.ReadFile(filename)
+	bikeCollection := session.DB("OpenBicycleDatabase").C("bikes")
+	query := bikeCollection.Find(bson.M{"name":values.Get("name")})
+	var bike Bike
+	err := query.One(&bike)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return 404, "Bike not found"
+		}else{
+			return 500, "Internal Server Error"
+			panic(err)	
+		}
+		
+	}
+
 	if err != nil {
 		return 404, "404 Bike Not Found"
 	}
-	var bike Bike
-	if( json.Unmarshal(jsonBlob, &bike)	!= nil){
-		return 500, ""
-	} 
 
 	return 200,bike
 }
@@ -202,6 +199,10 @@ func (Component) Post(values url.Values, body io.ReadCloser) (int, interface{}) 
 }
 
 func (Component) Get(values url.Values) (int, interface{}) {
+	if values.Get("name") == "" {
+		c := new (Component)
+		return 200,c.getAll();
+	}
 	filename := "db/component_"+values.Get("name") + ".json"
 	jsonBlob, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -215,25 +216,8 @@ func (Component) Get(values url.Values) (int, interface{}) {
 }
 func (Component) getAll() ([]Component) {
 	var components []Component
-	files, err := ioutil.ReadDir("db/")
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, file := range files {
-		if (strings.Index(file.Name(),"component_") == 0 ) {
-			absPath, err := filepath.Abs("db/"+file.Name())
-			jsonBlob, err := ioutil.ReadFile(absPath)
-			if err != nil {
-				panic(err)
-			}
-			var c Component
-			if( json.Unmarshal(jsonBlob, &c)	!= nil) {
-				panic("Could not Unmarshal !")
-			}
-			components = append(components,c)
-			fmt.Println(file.Name())
-		}		
-	}
+	componentCollection := session.DB("OpenBicycleDatabase").C("components")
+	componentCollection.Find(bson.M{}).All(&components)
 	return components
 }
 // Return Components Compatibles with a standards
@@ -251,16 +235,17 @@ func (Component) getCompatible(s Standard)([]Component){
 	}
 	return compatibleComponents
 }
+
 func (c Component) save() (error, Component){
-	filename := "db/component_"+c.Name + ".json"
-	if (c.Id == ""){
-		c.Id = uuid.NewV4().String()
+
+	componentCollection := session.DB("OpenBicycleDatabase").C("components")
+	// Check if element exits
+	filter := bson.M{"name":c.Name}
+	component, err := componentCollection.Upsert(filter,c)
+	if err != nil {
+		panic(err)
 	}
-	jsonBlob, err := json.Marshal(c)
-	if (err != nil ){
-		return err,c
-	}
-	// Retrieve the Supported Standard ? OR not !
-	err = ioutil.WriteFile(filename, jsonBlob, 0600)
+	fmt.Printf("Received upsert : \n\t %+v\n", component)
+	//bike already exists, let's update it
 	return err,c
 }
