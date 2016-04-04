@@ -23,7 +23,6 @@ type Bike struct {
 	Components        []Component `gorm:"many2many:bike_components;"`
 	SupportedStandard []Standard  `gorm:"_"`
 	PutNotSupported
-	DeleteNotSupported
 }
 type Component struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
@@ -134,6 +133,21 @@ func (Bike) Get(values url.Values) (int, interface{}) {
 	return 200, bike
 }
 
+func (Bike) Delete(values url.Values, id int) (int, interface{}) {
+	if id != 0 {
+		log.Print("Will Delete the ID : ")
+		log.Println(id)
+		err := db.Where("id = ?", id).Delete(&Bike{}).RecordNotFound()
+		if err {
+			return 404, "Id Not Found"
+		}
+		return 200, "plop"
+	} else {
+		log.Println(id)
+		return 404, "NOT FOUND"
+	}
+}
+
 func (Bike) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
 	decoder := json.NewDecoder(body)
 	var bike Bike
@@ -207,7 +221,7 @@ func (Standard) Get(values url.Values) (int, interface{}) {
 
 	return 200, s
 }
-func (Standard) Delete(values url.Values) (int, interface{}) {
+func (Standard) Delete(values url.Values, id int) (int, interface{}) {
 	filename := "db/standard_" + values.Get("name") + ".json"
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return 404, "404 Standard Not Found"

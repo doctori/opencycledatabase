@@ -30,7 +30,14 @@ module.exports = function (grunt) {
 
     // Project settings
     yeoman: appConfig,
-
+    run: {
+    	runGoServer: {
+    		exec: 'go run *.go',
+    		options: {
+    			wait: false
+    		}
+    	}
+    },
     // Watches files for changes and runs tasks based on the changed files
     watch: {
       bower: {
@@ -459,7 +466,6 @@ module.exports = function (grunt) {
     }
   });
 
-
   grunt.registerTask('serve', 'Compile then start a connect web server', function (target) {
     if (target === 'dist') {
       return grunt.task.run(['build', 'connect:dist:keepalive']);
@@ -468,6 +474,7 @@ module.exports = function (grunt) {
     grunt.task.run([
       'clean:server',
       'wiredep',
+      //'run:runGoServer',
       'concurrent:server',
       'postcss:server',
       'connect:livereload',

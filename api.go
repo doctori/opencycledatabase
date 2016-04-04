@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -20,7 +22,7 @@ type Resource interface {
 	Get(values url.Values) (int, interface{})
 	Post(values url.Values, body io.ReadCloser) (int, interface{})
 	Put(values url.Values, body io.ReadCloser) (int, interface{})
-	Delete(values url.Values) (int, interface{})
+	Delete(values url.Values, id int) (int, interface{})
 }
 
 type (
@@ -42,7 +44,7 @@ func (PutNotSupported) Put(values url.Values, body io.ReadCloser) (int, interfac
 	return 405, ""
 }
 
-func (DeleteNotSupported) Delete(values url.Values) (int, interface{}) {
+func (DeleteNotSupported) Delete(values url.Values, id int) (int, interface{}) {
 	return 405, ""
 }
 
@@ -60,6 +62,13 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 		method := request.Method // Get HTTP Method (string)
 		request.ParseForm()      // Populates request.Form
 		values := request.Form
+		splittedPath := strings.SplitAfter(request.URL.Path, "/")
+		log.Print("Received : ")
+		log.Println(splittedPath[len(splittedPath)-1])
+		id, err := strconv.Atoi(splittedPath[len(splittedPath)-1])
+		if err != nil {
+			id = 0
+		}
 		body := request.Body
 		fmt.Printf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
@@ -70,7 +79,10 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 		case "PUT":
 			code, data = resource.Put(values, body)
 		case "DELETE":
-			code, data = resource.Delete(values)
+			code, data = resource.Delete(values, id)
+		case "OPTIONS":
+			code = 200
+			data = nil
 		default:
 			api.Abort(rw, 405)
 		}
@@ -81,6 +93,7 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 		rw.Header().Set("Content-Type", "text/json; charset=utf-8")
 		rw.Header().Set("Access-Control-Allow-Origin", "*")
 		rw.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+		rw.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
 		rw.WriteHeader(code)
 		rw.Write(content)
 	}
