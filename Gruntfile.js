@@ -18,7 +18,7 @@ module.exports = function (grunt) {
     ngtemplates: 'grunt-angular-templates',
     cdnify: 'grunt-google-cdn'
   });
-
+  grunt.loadNpmTasks('grunt-run');
   // Configurable paths for the application
   var appConfig = {
     app: require('./bower.json').appPath || 'app',
@@ -31,15 +31,20 @@ module.exports = function (grunt) {
     // Project settings
     yeoman: appConfig,
     run: {
-    	runGoServer: {
+    	goServer: {
     		exec: 'go run *.go',
     		options: {
-    			wait: false
+          ready:'8080',
+    			wait: false,
+          failOnError: true
     		}
     	}
     },
     // Watches files for changes and runs tasks based on the changed files
     watch: {
+      options:{
+        spawn: false
+      },
       bower: {
         files: ['bower.json'],
         tasks: ['wiredep']
@@ -54,6 +59,10 @@ module.exports = function (grunt) {
       jsTest: {
         files: ['test/spec/{,*/}*.js'],
         tasks: ['newer:jshint:test', 'newer:jscs:test', 'karma']
+      },
+      goServer: {
+        files: ['*.go'],
+        tasks: ['stop:goServer','run:goServer']
       },
       compass: {
         files: ['<%= yeoman.app %>/styles/{,*/}*.{scss,sass}'],
@@ -474,7 +483,7 @@ module.exports = function (grunt) {
     grunt.task.run([
       'clean:server',
       'wiredep',
-      //'run:runGoServer',
+      'run:goServer',
       'concurrent:server',
       'postcss:server',
       'connect:livereload',

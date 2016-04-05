@@ -19,12 +19,27 @@ angular.module('openBicycleDatabaseApp')
       
     };
   })
+  .controller('BikeDetailCtrl', function ($scope, $routeParams, Bike) {
+    Bike.get({id:$routeParams.bikeID},function(bike){
+      console.log(bike);
+      $scope.bike = bike;
+    });
+    $scope.bikeSave = function(){
+      console.log($scope.bike);
+      return $scope.bike.$save();
+    };
+    $scope.nameLabel = "Name";
+    $scope.brandLabel = "Brand";
+    $scope.yearLabel = "Year";
+    $scope.descriptionLabel = "Description";
+    $scope.componentNameLabel = "Component Name";
+  })
   .controller('NewBikeCtrl', function($scope, Bike){
     //Label Def
     $scope.nameLabel  = 'Name';
     $scope.brandLabel = 'Brand';
     $scope.yearLabel  = 'Year';
-    $scope.namePlaceHolder = "Bike Name";
+    $scope.namePlaceHolder = 'Bike Name';
     // Errors Def
     $scope.errorBrandRequired = 'The Brand Name is Required';
     $scope.errorYearRequired = 'The Year of the model is Required';

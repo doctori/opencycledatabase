@@ -19,7 +19,7 @@ const (
 )
 
 type Resource interface {
-	Get(values url.Values) (int, interface{})
+	Get(values url.Values, id int) (int, interface{})
 	Post(values url.Values, body io.ReadCloser) (int, interface{})
 	Put(values url.Values, body io.ReadCloser) (int, interface{})
 	Delete(values url.Values, id int) (int, interface{})
@@ -32,7 +32,7 @@ type (
 	DeleteNotSupported struct{}
 )
 
-func (GetNotSupported) Get(values url.Values) (int, interface{}) {
+func (GetNotSupported) Get(values url.Values, id int) (int, interface{}) {
 	return 405, ""
 }
 
@@ -73,7 +73,7 @@ func (api *API) requestHandler(resource Resource) http.HandlerFunc {
 		fmt.Printf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
 		case "GET":
-			code, data = resource.Get(values)
+			code, data = resource.Get(values, id)
 		case "POST":
 			code, data = resource.Post(values, body)
 		case "PUT":

@@ -118,15 +118,21 @@ func (b Bike) save() {
 func GetAllBikes() interface{} {
 
 	var bikes []Bike
-	db.Preload("Components").Preload("Components.Standards").Find(&bikes)
+	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
+	db.Find(&bikes)
 	return bikes
 }
-func (Bike) Get(values url.Values) (int, interface{}) {
-	if values.Get("name") == "" {
+func (Bike) Get(values url.Values, id int) (int, interface{}) {
+	/*if values.Get("name") == "" {
+		return 200, GetAllBikes()
+	}*/
+	// Let Display All that We Have
+	// Someday Pagination will be there
+	if id == 0 {
 		return 200, GetAllBikes()
 	}
 	var bike Bike
-	err := db.Preload("Components").Preload("Components.Standards").Find(&bike, "name= ? ", values.Get("name")).RecordNotFound()
+	err := db.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 	if err {
 		return 404, "Bike not found"
 	}
@@ -208,7 +214,7 @@ func (Standard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
 	}
 	return 200, standard
 }
-func (Standard) Get(values url.Values) (int, interface{}) {
+func (Standard) Get(values url.Values, id int) (int, interface{}) {
 	filename := "db/standard_" + values.Get("name") + ".json"
 	jsonBlob, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -260,7 +266,7 @@ func (Component) Post(values url.Values, body io.ReadCloser) (int, interface{}) 
 	return 200, component
 }
 
-func (Component) Get(values url.Values) (int, interface{}) {
+func (Component) Get(values url.Values, id int) (int, interface{}) {
 	if values.Get("name") == "" {
 		c := new(Component)
 		return 200, c.getAll()

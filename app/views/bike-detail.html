@@ -1,0 +1,48 @@
+<div class="row">
+	<div class="col-md-10">
+		<span editable-text="bike.Name" onaftersave="bikeSave()">
+			<h3> {{bike.Name}}</h3>
+		</span>
+	</div>
+	<div class="col-md-2">
+		<button ng-click='remove($index,bike)' type="button" class="btn btn-danger">Remove</button>
+	</div>
+
+</div>
+<div class="row">
+<!--	<div class="col-md-2">-->
+	<dl class="dl-horizontal">
+		<dt>
+			{{brandLabel}} : 
+		</dt>
+		<dd>
+			<span editable-text="bike.Brand" onaftersave="bikeSave()">{{bike.Brand}}</span>
+		</dd>
+		<dt>
+			{{yearLabel}} :
+		</dt>
+		<dd>
+			<span editable-number="bike.Year" onaftersave="bikeSave()">{{bike.Year||'Empty'}}</span>
+		</dd>
+		<dt>
+			{{descriptionLabel}} :
+		</dt>
+		<dd>
+			<span editable-textarea="bike.Description" e-rows="4" e-cols="40" onaftersave="bikeSave()">{{bike.Description||'Empty'}}</span>
+		</dd>
+	</dl>
+</div>
+<div class="row">
+	<div class="col-md-1">
+	</div>
+	<div class="col-md-11">
+		<dl class="dl-horizontal" ng-repeat="component in bike.Components">
+			<dt>
+				{{componentNameLabel}} : 
+			</dt>
+			<dd>
+				<span editable-text="component.Name" onaftersave="bikeSave()">{{component.Name}}</span>
+			</dd>
+		</dl>
+	</div>
+</div>
