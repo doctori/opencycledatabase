@@ -19,6 +19,7 @@ module.exports = function (grunt) {
     cdnify: 'grunt-google-cdn'
   });
   grunt.loadNpmTasks('grunt-run');
+  grunt.loadNpmTasks('grunt-angular-gettext');
   // Configurable paths for the application
   var appConfig = {
     app: require('./bower.json').appPath || 'app',
@@ -133,7 +134,24 @@ module.exports = function (grunt) {
         }
       }
     },
-
+    // extract Translation Files
+    nggettext_extract: {
+      pot: {
+        files: {
+          'po/template.pot': ['**/*.html']
+        }
+      }
+    },
+    nggettext_compile: {
+      all: {
+        options: {
+          module: 'openBicycleDatabaseApp'
+        },
+        files: {
+          'app/scripts/translations.js': ['po/*.po']
+        }
+      },
+    },
     // Make sure there are no obvious mistakes
     jshint: {
       options: {
@@ -483,6 +501,7 @@ module.exports = function (grunt) {
     grunt.task.run([
       'clean:server',
       'wiredep',
+      'nggettext_compile',
       'run:goServer',
       'concurrent:server',
       'postcss:server',
@@ -508,6 +527,7 @@ module.exports = function (grunt) {
   grunt.registerTask('build', [
     'clean:dist',
     'wiredep',
+    'nggettext_compile',
     'useminPrepare',
     'concurrent:dist',
     'postcss',

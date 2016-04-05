@@ -17,8 +17,13 @@ angular
     'ngRoute',
     'ngSanitize',
     'ngTouch',
+    'gettext',
     'xeditable'
   ])
+  .run(function(gettextCatalog){
+    gettextCatalog.setCurrentLanguage('fr_FR');
+    gettextCatalog.debug = true;
+  })
   .config(function ($routeProvider) {
     $routeProvider
       .when('/', {
