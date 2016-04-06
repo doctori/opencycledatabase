@@ -32,10 +32,13 @@ module.exports = function (grunt) {
     // Project settings
     yeoman: appConfig,
     run: {
-    	goServer: {
-    		exec: 'go run *.go',
+      goBuild: {
+        exec: 'go build *.go',
+        failOnError: true
+      },
+    	goServe: {
+    		cmd: './api',
     		options: {
-          ready:'8080',
     			wait: false,
           failOnError: true
     		}
@@ -61,9 +64,9 @@ module.exports = function (grunt) {
         files: ['test/spec/{,*/}*.js'],
         tasks: ['newer:jshint:test', 'newer:jscs:test', 'karma']
       },
-      goServer: {
+      goServe: {
         files: ['*.go'],
-        tasks: ['stop:goServer','run:goServer']
+        tasks: ['stop:goServe','run:goBuild','run:goServe']
       },
       compass: {
         files: ['<%= yeoman.app %>/styles/{,*/}*.{scss,sass}'],
@@ -83,7 +86,6 @@ module.exports = function (grunt) {
         ]
       }
     },
-
     // The actual grunt server settings
     connect: {
       options: {
@@ -502,7 +504,8 @@ module.exports = function (grunt) {
       'clean:server',
       'wiredep',
       'nggettext_compile',
-      'run:goServer',
+      'run:goBuild',
+      'run:goServe',
       'concurrent:server',
       'postcss:server',
       'connect:livereload',
@@ -526,6 +529,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', [
     'clean:dist',
+    'run:goBuild',
     'wiredep',
     'nggettext_compile',
     'useminPrepare',

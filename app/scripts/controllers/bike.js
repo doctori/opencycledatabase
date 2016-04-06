@@ -28,6 +28,20 @@ angular.module('openBicycleDatabaseApp')
       console.log($scope.bike);
       return $scope.bike.$save();
     };
+    $scope.newComponentForm = function(){
+      console.log("instantiating new Component to insert into the Bike");
+      $scope.newComponent = {};
+    };
+    $scope.saveComponent = function(component){
+      console.log("adding :");
+      console.log(component);
+      if($scope.bike.Components == null){
+        $scope.bike.Components = [];
+      }
+      $scope.bike.Components.push(component);
+      $('#new-component').modal('toggle');
+      return $scope.bike.$save();
+    };
     $scope.nameLabel = "Name";
     $scope.brandLabel = "Brand";
     $scope.yearLabel = "Year";

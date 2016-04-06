@@ -1,5 +1,6 @@
 <div class="row">
-	<div class="col-md-10">
+	<div class="col-md-1"></div>
+	<div class="col-md-9">
 		<span editable-text="bike.Name" onaftersave="bikeSave()">
 			<h3> {{bike.Name}}</h3>
 		</span>
@@ -10,45 +11,136 @@
 
 </div>
 <div class="row">
+	<div class="col-md-1"></div>
 <!--	<div class="col-md-2">-->
-	<dl class="dl-horizontal">
-		<dt>
-			{{brandLabel}} : 
-		</dt>
-		<dd>
-			<span editable-text="bike.Brand" onaftersave="bikeSave()">{{bike.Brand}}</span>
-		</dd>
-		<dt>
-			{{yearLabel}} :
-		</dt>
-		<dd>
-			<span editable-number="bike.Year" onaftersave="bikeSave()">{{bike.Year||'Empty'}}</span>
-		</dd>
-		<dt>
-			{{descriptionLabel}} :
-		</dt>
-		<dd>
-			<span editable-textarea="bike.Description" e-rows="4" e-cols="40" onaftersave="bikeSave()">{{bike.Description||'Empty'}}</span>
-		</dd>
-	</dl>
+	<div class="col-md-9">
+		<dl class="dl-horizontal">
+			<dt>
+				<span translate>Brand</span> :
+			</dt>
+			<dd>
+				<span editable-text="bike.Brand" onaftersave="bikeSave()">{{bike.Brand}}</span>
+			</dd>
+			<dt>
+				<span translate>Year</span> :
+			</dt>
+			<dd>
+				<span editable-number="bike.Year" onaftersave="bikeSave()">{{bike.Year||'Empty'}}</span>
+			</dd>
+			<dt>
+				{{descriptionLabel}} :
+			</dt>
+			<dd>
+				<span editable-textarea="bike.Description" e-rows="4" e-cols="40" onaftersave="bikeSave()">{{bike.Description||'Empty'}}</span>
+			</dd>
+		</dl>
+	</div>
 </div>
 <div class="row">
-	<div class="col-md-10">
-	<h4> Components : </h4>
+	<div class="col-md-2"></div>
+	<div class="col-md-5">
+		<h4 translate > Components : </h4>
 	</div>
 	<div class="col-md-2">
-	<button ng-click='openComponentForm()' type="button" class="btn btn-primary">Add Component</button>
+		<button ng-click='newComponentForm()' type="button" class="btn btn-primary" data-toggle="modal" data-target="#new-component">Add Component</button>
 	</div>
-	<div class="col-md-1">
-	</div>
-	<div class="col-md-11">
+	
+</div>
+<div class="row">
+	<div class="col-md-3"></div>
+	<div class="col-md-9">
 		<dl class="dl-horizontal" ng-repeat="component in bike.Components">
 			<dt>
-				{{componentNameLabel}} : 
+				<span translate > Component Name </span> : 
 			</dt>
 			<dd>
 				<span editable-text="component.Name" onaftersave="bikeSave()">{{component.Name}}</span>
 			</dd>
+			<dt>
+				<span translate> Type </span> :
+			</dt>
+			<dd>
+				<span editable-text="component.Type" onaftersave="bikeSave()">{{component.Type||'Empty'}}</span>
+			</dd>
+			<dt>
+				<span translate > Brand </span> : 
+			</dt>
+			<dd>
+				<span editable-text="component.Brand" onaftersave="bikeSave()">{{component.Brand}}</span>
+			</dd>
 		</dl>
+	</div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="new-component">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+				<h4 tranlate class="modal-title">New Component</h4>
+			</div>
+			<form class="new-component-form" name="new-component-form">
+				<div class="modal-body">
+					<div class="form-group">
+						<div class="row">
+						<label tranlate for="component-name" class="col-xs-4 control-label">Component Name</label>
+						<div class="col-xs-8">
+							<input type="text" id="new-component-name" name="new-component-name" ng-model="newComponent.Name" placeholder="Component Name" required/> 
+							<div role="alert">
+								<span translate class="component.name.error" ng-show="new-component-form.component-name.$error.required">
+								The Name Of The Component is required !
+								</span>
+							</div>
+						</div>
+						</div>
+						<div class="row">
+							<label for="component-brand" class="col-xs-4 control-label">{{brandLabel}}</label>
+							<div class="col-xs-8">
+								<input type="text" id="component-brand" name="component-brand" ng-model="newComponent.Brand" placeholder="Component Brand" required />
+								<div role="alert">
+									<span translate class="bike-brand-error" ng-show="new-component-form.component-brand.$error.required">
+										The Brand Of The Bike is Requiered ! 
+									</span>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<label for="component-type" class="col-xs-4 control-label">Component Type</label>
+							<div class="col-xs-8">
+								<input type="text" id="component-type" name="component-type" ng-model="newComponent.Type" placeholder="Component Type" required />
+								<div role="alert">
+									<span translate class="bike-brand-error" ng-show="new-component-form.component-brand.$error.required">
+										The Type Of The Bike is Requiered ! 
+									</span>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<label for="component-year" class="col-xs-4 control-label">{{yearLabel}}</label>
+							<div class="col-xs-8">
+								<input type="number" id="component-year" name="component-year" ng-model="newComponent.Year" min="1700" placeholder="1999" required/>
+								<div role="alert">
+									<span translate class="component-year-error" ng-show="new-component-form.component-year.$error.required">
+										The Year Of The Component is Requiered
+									</span>
+									<span translate class="component-year-error" ng-show="new-component-form.component-year.$error.valid">
+										The Year should be a Number (or something Like That)
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer form-group">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					<button type="button" ng-click="saveComponent(newComponent)" class="btn btn-primary">Save changes</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<div class="modal fade" tabindex="-1" role="dialog">
+	<div class="modal-dialog">
+
 	</div>
 </div>
