@@ -85,10 +85,17 @@ type Standard struct {
 	Description string
 }
 
-var db = initDB()
+var db = &gorm.DB{}
 
-func initDB() *gorm.DB {
-	db, err := gorm.Open("postgres", "user=openbycicle password='stjoseph' host=/var/run/postgresql dbname=openbycicle")
+func initDB(config Config) *gorm.DB {
+	connectionString := fmt.Sprintf(
+		"user=%s password='%s' host=%s dbname=%s",
+		config.DB.Username,
+		config.DB.Password,
+		config.DB.Host,
+		config.DB.DBname)
+	log.Printf("Connecting to %s", connectionString)
+	db, err := gorm.Open("postgres", connectionString)
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
 	db.LogMode(true)
