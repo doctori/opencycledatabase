@@ -1,38 +1,57 @@
 <div ng-controller="NewBikeCtrl">
+	
+
 	<form class="new-bike-form" name="new-bike-form">
 	<div class="form-group">
-		<label for="bike-name" class="col-sm-2 control-label">{{nameLabel}}</label>
-		<div class="col-sm-10">
-			<input type="text" id="bike-name" name="bike-name" ng-model="bike.Name" placeholder="{{namePlaceHolder}}" required/> 
-			<div role="alert">
-				<span class="bike.name.error" ng-show="new-bike-form.bike-name.$error.required">
-				{{errorNameRequired}}
-				</span>
+		<div class=row>
+			<label for="bike-name" class="col-sm-2 control-label">{{nameLabel}}</label>
+			<div class="col-sm-10">
+				<input type="text" id="bike-name" name="bike-name" ng-model="bike.Name" placeholder="{{namePlaceHolder}}" required/> 
+				<div role="alert">
+					<span class="bike.name.error" ng-show="new-bike-form.bike-name.$error.required">
+					{{errorNameRequired}}
+					</span>
+				</div>
+			</div>
+			<label for="bike.brand" class="col-sm-2 control-label">{{brandLabel}}</label>
+			<div class="col-sm-10">
+				<input type="text" id="bike-brand" name="bike-brand" ng-model="bike.Brand.Name"required />
+				<div role="alert">
+					<span class="bike-brand-error" ng-show="new-bike-form.bike-brand.$error.required">
+						{{errorBrandRequired}}
+					</span>
+				</div>
+			</div>
+			<label for="bike.year" class="col-sm-2 control-label">{{yearLabel}}</label>
+			<div class="col-sm-10">
+				<input type="number" id="bike-year" name="bike-year" ng-model="bike.Year" min="1700" required/>
+				<div role="alert">
+					<span class="bike-year-error" ng-show="new-bike-form.bike-year.$error.required">
+						{{errorYearRequired}}
+					</span>
+					<span class="bike-year-error" ng-show="new-bike-form.bike-year.$error.valid">
+						{{errorYearPattern}}
+					</span>
+				</div>
+			</div>
+			<label for="bike.description" class="col-sm-2 control-label">Description</label>
+			<div class="col-sm-10">
+				<input type="text-area" id="bike-description" name="bike-description" ng-model="bike.Description" />
+				<div role="alert">
+				</div>
 			</div>
 		</div>
-		<label for="bike.brand" class="col-sm-2 control-label">{{brandLabel}}</label>
-		<div class="col-sm-10">
-			<input type="text" id="bike-brand" name="bike-brand" ng-model="bike.Brand"required />
-			<div role="alert">
-				<span class="bike-brand-error" ng-show="new-bike-form.bike-brand.$error.required">
-					{{errorBrandRequired}}
-				</span>
-			</div>
-		</div>
-		<label for="bike.year" class="col-sm-2 control-label">{{yearLabel}}</label>
-		<div class="col-sm-10">
-			<input type="number" id="bike-year" name="bike-year" ng-model="bike.Year" min="1700" required/>
-			<div role="alert">
-				<span class="bike-year-error" ng-show="new-bike-form.bike-year.$error.required">
-					{{errorYearRequired}}
-				</span>
-				<span class="bike-year-error" ng-show="new-bike-form.bike-year.$error.valid">
-					{{errorYearPattern}}
-				</span>
-			</div>
-		</div>
-	</div>
-	<div class="form-group">
+		<div class="row">
+			<div class="col-md-3">
+			    Add Image:
+		    </div>
+		    <div ngf-drop ngf-select ng-model="files" class="drop-box col-md-7" 
+		        ngf-drag-over-class="'dragover'" ngf-multiple="true" ngf-allow-dir="true"
+		        accept="image/*" 
+		        ngf-pattern="'image/*'">Drop images here or click to upload</div>
+		    <div ngf-no-file-drop>File Drag/Drop is not supported for this browser</div>
+	    </div>
+
 		<div class="col-sm-offset-2 col-sm-10">
 			<button type="submit" ng-click="save(bike)" class="btn btn-primary">{{validate}}</button>
 		</div>

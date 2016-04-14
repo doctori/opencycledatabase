@@ -18,7 +18,8 @@ angular
     'ngSanitize',
     'ngTouch',
     'gettext',
-    'xeditable'
+    'xeditable',
+    'ngFileUpload'
   ])
   .run(function(gettextCatalog){
     gettextCatalog.setCurrentLanguage('fr_FR');

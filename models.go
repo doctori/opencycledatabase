@@ -1,38 +1,77 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/nfnt/resize"
+	"image"
+	"image/jpeg"
+	_ "image/png"
 	"io"
 	"io/ioutil"
 	"log"
+	"mime"
+	"mime/multipart"
+	"net/http"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	//"github.com/satori/go.uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
+type ComponentType struct {
+	gorm.Model
+	Name        string
+	Description string
+}
+type Brand struct {
+	gorm.Model
+	Name         string
+	Description  string
+	Image        int
+	CreationYear int
+	EndYear      int
+	Country      string
+	PutNotSupported
+	DeleteNotSupported
+}
 type Bike struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
 	Name              string
-	Brand             string
+	Brand             Brand `gorm:"ForeignKey:BrandID"`
+	BrandID           int
 	Year              int
 	Description       string
+	Image             int
 	Components        []Component `gorm:"many2many:bike_components;"`
-	SupportedStandard []Standard  `gorm:"_"`
+	SupportedStandard []Standard  `sql:"-"`
 	PutNotSupported
 }
 type Component struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
 	Name        string
-	Brand       string
-	Type        string
+	Brand       Brand         `gorm:"many2many:component_brand;"`
+	Type        ComponentType `gorm:"many2many:components_types;"`
 	Description string
-	Standards   []Standard `gorm:"many2many:component_standards;"`
+	Standards   []Standard `gorm:"many2many:component_standards"`
 	Year        int
+	PutNotSupported
+	DeleteNotSupported
+}
+type Image struct {
+	gorm.Model
+	Name          string
+	Path          string
+	Type          string
+	ContentType   string
+	ContentLength int64
+	Content       []byte `sql:"-"`
 	PutNotSupported
 	DeleteNotSupported
 }
@@ -51,27 +90,185 @@ var db = initDB()
 func initDB() *gorm.DB {
 	db, err := gorm.Open("postgres", "user=openbycicle password='stjoseph' host=/var/run/postgresql dbname=openbycicle")
 	checkErr(err, "Postgres Opening Failed")
-	db.CreateTable(Standard{})
-	db.CreateTable(Component{})
-	db.CreateTable(Bike{})
+	// Debug Mode
 	db.LogMode(true)
-	db.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name, brand, year")
-	db.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, brand, type, year")
+	db.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
+	db.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year")
+	db.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year")
 	db.Model(&Standard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
-	db.AutoMigrate(&Bike{}, &Component{}, &Standard{})
+	db.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
+	db.AutoMigrate(&Bike{}, &Component{}, &Standard{}, &Image{}, &Brand{}, &ComponentType{})
 	checkErr(err, "Create tables failed")
 
 	return db
-
 }
+
 func checkErr(err error, msg string) {
 	if err != nil {
-		log.Fatalln(msg, err)
+		log.Panicln(msg, err)
 	}
 }
 
-// Should Return Errors !!
+func (Brand) Get(values url.Values, id int) (int, interface{}) {
 
+	if id == 0 {
+		var brands []Brand
+		//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
+		db.Find(&brands)
+		return 200, brands
+	}
+	var brand Brand
+	err := db.First(&brand, id).RecordNotFound()
+	if err {
+		return 404, "Brand not found"
+	}
+	return 200, brand
+}
+
+func (Brand) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+	body := request.Body
+	var brand Brand
+	if adj != "" {
+		if id == 0 {
+			return 500, "That Shouldn't have appended"
+		}
+
+		err := db.First(&brand, id).RecordNotFound()
+		if err {
+			return 404, "Brand not found"
+		}
+	} else {
+		decoder := json.NewDecoder(body)
+		err := decoder.Decode(&brand)
+		if err != nil {
+			panic(err)
+			return 500, "Internal Error"
+		}
+		log.Println(brand)
+		brand = brand.save()
+	}
+
+	return 200, brand
+
+}
+func (b Brand) save() Brand {
+	if db.NewRecord(b) {
+		oldb := new(Brand)
+		db.Where("name = ?", b.Name).First(&oldb)
+		if oldb.Name == "" {
+			log.Println("Recording the New Brand")
+			db.Create(&b)
+		} else {
+			log.Println("Updating The Existing  Brand")
+			db.Model(&oldb).Updates(&b)
+			b = *oldb
+			log.Printf("Saving Brand %#v", b)
+		}
+	} else {
+		db.Create(&b)
+	}
+	return b
+}
+func (Image) Get(values url.Values, id int) (int, interface{}) {
+	var img Image
+	if id == 0 {
+		return 500, "Could not GET All Images"
+	}
+	recordNotFound := db.First(&img, id).RecordNotFound()
+	if recordNotFound {
+		return 404, "Image Not Found"
+	}
+	file, err := os.Open(img.Path)
+	log.Printf("Serving : %v", img.Path)
+	defer file.Close()
+	if err != nil {
+		log.Println("Could Not Find the Image")
+		return 404, "File Not Found"
+	}
+	// Detect Mime Type
+	//buff := make([]byte, 512)
+	//_, err = file.ReadAt(buff, 0)
+	//img.ContentType = http.DetectContentType(buff)
+	img.ContentType = "image/jpeg"
+
+	decodedImg, _, err := image.Decode(file)
+	file.Close()
+	if err != nil {
+		log.Panic(err)
+	}
+	resizedImg := resize.Resize(600, 0, decodedImg, resize.Lanczos3)
+	var buffer bytes.Buffer
+	jpeg.Encode(&buffer, resizedImg, nil)
+
+	img.Content = buffer.Bytes()
+	img.ContentLength = int64(buffer.Len())
+
+	return 200, img
+
+}
+func (i Image) GetContentType() string {
+	return i.ContentType
+}
+func (i Image) GetContentLength() string {
+	return strconv.FormatInt(i.ContentLength, 10)
+}
+func (i Image) GetContent() []byte {
+	return i.Content
+}
+func (Image) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+	uploadFolder := "upload/"
+	mediaType, params, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
+	checkErr(err, "Could Not Determine the Content Type")
+	img := Image{}
+	if strings.HasPrefix(mediaType, "multipart/") {
+		log.Println("YOU ARE POSTING AN IMAGE")
+		multipartReader := multipart.NewReader(request.Body, params["boundary"])
+		// Should Build buffer and Write it at the end (loop thour the nextpart !)
+		partReader, err := multipartReader.NextPart()
+		fileName := partReader.FileName()
+		filePath := uploadFolder + fileName
+		file, err := os.Create(filePath)
+		if err != nil {
+			log.Println(err)
+			return 500, err
+		}
+		checkErr(err, "Could Not Get the Next Part")
+		if _, err := io.Copy(file, partReader); err != nil {
+			log.Fatal(err)
+			return 500, err
+		}
+		// Let's record this image and return it to our client
+		img = Image{Name: fileName, Path: filePath}
+		recordedImg := img.save()
+		log.Printf("Posted : %#v", img)
+		return 200, recordedImg
+	} else {
+		return 500, "Nhope"
+	}
+
+	return 200, img
+}
+
+func (i Image) save() Image {
+	if db.NewRecord(i) {
+		oldi := new(Image)
+		db.Where("name = ? and path = ? ", i.Name, i.Path).First(&oldi)
+		if oldi.Name == "" {
+			log.Println("Recording the New Image")
+			db.Create(&i)
+		} else {
+			log.Println("Updating The Image Record")
+			db.Model(&oldi).Updates(&i)
+			i = *oldi
+			log.Printf("Saving Image %#v", i)
+		}
+	} else {
+		db.Create(&i)
+	}
+	return i
+}
+
+// Should Return Errors !!
 func (b Bike) save() {
 	// If we have a new record we create it
 	if db.NewRecord(b) {
@@ -154,19 +351,29 @@ func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 	}
 }
 
-func (Bike) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
-	decoder := json.NewDecoder(body)
+func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+	body := request.Body
 	var bike Bike
-	err := decoder.Decode(&bike)
-	if err != nil {
-		panic(err)
-		return 500, "Internal Error"
+	if adj != "" {
+		if id == 0 {
+			return 500, "FUCK"
+		}
+		log.Printf("%#v", body)
+		err := db.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
+		if err {
+			return 404, "Bike not found"
+		}
+	} else {
+		decoder := json.NewDecoder(body)
+		err := decoder.Decode(&bike)
+		if err != nil {
+			panic(err)
+			return 500, "Internal Error"
+		}
+		log.Println(bike)
+		bike.save()
 	}
-	log.Println(bike)
-	bike.save()
-	// if err != nil {
-	// 	return 500, "Could Not Save the Bike"
-	// }
+
 	return 200, bike
 
 }
@@ -183,7 +390,8 @@ func (Bike) getCompatibleComponents(bike Bike) []Component {
 	return compatibleComponents
 }
 
-func (Standard) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
+func (Standard) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+	body := request.Body
 	fmt.Printf("Received args : \n\t %+v\n", values)
 	decoder := json.NewDecoder(body)
 	var standard Standard
@@ -250,7 +458,8 @@ func (s Standard) save() (error, Standard) {
 	return err, s
 }
 
-func (Component) Post(values url.Values, body io.ReadCloser) (int, interface{}) {
+func (Component) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+	body := request.Body
 	fmt.Printf("Received args : \n\t %+v\n", body)
 	decoder := json.NewDecoder(body)
 	var component Component

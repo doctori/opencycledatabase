@@ -9,10 +9,12 @@ func main() {
 	bike := new(Bike)
 	component := new(Component)
 	standard := new(Standard)
+	image := new(Image)
 	api.AddResource(bike, "/bikes")
-	api.AddResource(bike, "/bikes/")
 	api.AddResource(component, "/components")
 	api.AddResource(standard, "/standards")
+	api.AddResource(&Brand{}, "/brands")
+	api.AddNonJSONResource(image, "")
 	fmt.Printf("Listening To :8080 \n")
 	api.Start("0.0.0.0", 8080)
 
