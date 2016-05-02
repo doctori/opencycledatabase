@@ -43,8 +43,8 @@ type Bike struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
 	Name              string
-	Brand             Brand `gorm:"ForeignKey:BrandID"`
-	BrandID           int
+	Brand             Brand
+	BrandID           int `json:"-"`
 	Year              int
 	Description       string
 	Image             int
@@ -56,8 +56,10 @@ type Component struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
 	Name        string
-	Brand       Brand         `gorm:"many2many:component_brand;"`
-	Type        ComponentType `gorm:"many2many:components_types;"`
+	Brand       Brand         `sql:"-"`
+	BrandID     int           `json:"-"`
+	Type        ComponentType `sql:"-"`
+	TypeID      int           `json:"-"`
 	Description string
 	Standards   []Standard `gorm:"many2many:component_standards"`
 	Year        int
@@ -156,8 +158,8 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 	}
 
 	return 200, brand
-
 }
+
 func (b Brand) save() Brand {
 	if db.NewRecord(b) {
 		oldb := new(Brand)
@@ -176,6 +178,26 @@ func (b Brand) save() Brand {
 	}
 	return b
 }
+
+func (ct ComponentType) save() ComponentType {
+	if db.NewRecord(ct) {
+		oldct := new(ComponentType)
+		db.Where("name = ?", oldct.Name).First(&oldct)
+		if oldct.Name == "" {
+			log.Println("Recording the New Component type")
+			db.Create(&ct)
+		} else {
+			log.Println("Updating The Existing Component Type")
+			db.Model(&oldct).Updates(&ct)
+			ct = *oldct
+			log.Printf("Saving Component type %#v", ct)
+		}
+	} else {
+		db.Create(&ct)
+	}
+	return ct
+}
+
 func (Image) Get(values url.Values, id int) (int, interface{}) {
 	var img Image
 	if id == 0 {
@@ -326,6 +348,7 @@ func GetAllBikes() interface{} {
 	db.Find(&bikes)
 	return bikes
 }
+
 func (Bike) Get(values url.Values, id int) (int, interface{}) {
 	/*if values.Get("name") == "" {
 		return 200, GetAllBikes()
@@ -380,14 +403,14 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 		log.Println(bike)
 		bike.save()
 	}
-
 	return 200, bike
-
 }
+
 func (Bike) addComponent(bike Bike, component Component) {
 	bike.Components = append(bike.Components, component)
 	bike.save()
 }
+
 func (Bike) getCompatibleComponents(bike Bike) []Component {
 	var compatibleComponents []Component
 	// Get The Components, Get their Standards
@@ -472,6 +495,8 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 	var component Component
 	err := decoder.Decode(&component)
 	if err != nil {
+		log.Printf("Could not decode : %+v\nbecause %v\n", body, err)
+		return 500, "Could Not Decode the Data"
 		panic("shiit")
 	}
 	log.Println(component)
@@ -522,7 +547,8 @@ func (c Component) save() (error, Component) {
 
 	if db.NewRecord(c) {
 		oldc := new(Component)
-		db.Preload("Standards").Where("name = ? AND brand = ? AND type = ? AND year = ?", c.Name, c.Brand, c.Type, c.Year).First(&oldc)
+
+		db.Preload("Standards").Preload("ComponentType").Preload("Brand").Where("name = ? AND brand = ? AND type = ? AND year = ?", c.Name, c.Brand, c.Type, c.Year).First(&oldc)
 		log.Println(oldc)
 		if oldc.Name == "" {
 			log.Println("Creating the record")
@@ -539,10 +565,15 @@ func (c Component) save() (error, Component) {
 					}
 				}
 			}
+			c.Brand = c.Brand.save()
+			c.Type = c.Type.save()
 			db.Model(&oldc).Updates(&c)
 			c = *oldc
 		}
 	} else {
+		// Maybe Save nested object independantly ?
+		c.Type = c.Type.save()
+		c.Brand = c.Brand.save()
 		db.Save(c)
 	}
 	return db.Error, c

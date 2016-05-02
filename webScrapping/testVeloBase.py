@@ -50,11 +50,16 @@ class VeloBaseScrapper(scrapy.Spider):
         componentCategory = response.xpath('//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[1]/td/text()').extract()[-1]
         componentName = response.xpath('//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[2]/td/text()').extract()[-1]
         componentBrand = response.xpath('//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[3]/td/a/text()').extract()[-1]
-        self.logger.info("-"*70)
+        componentCountry = response.xpath('//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[7]/td/text()').extract()[-1]
+        componentDescription = response.xpath('//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr/td[contains(text(),"Country:")]/following-sibling::td').extract()
+
+        self.logger.info("-" * 70)
         self.logger.info(" COMPONENT %s ", componentName)
-        self.logger.info("-"*70)
+        self.logger.info("-" * 70)
         yield {
             'category': componentCategory,
             'name': componentName,
-            'brand': componentBrand
-            }
+            'brand': componentBrand,
+            'country': componentCountry,
+            'description': componentDescription
+        }
