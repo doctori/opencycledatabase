@@ -553,10 +553,10 @@ func (c Component) save() (error, Component) {
 
 		if c.Brand.ID != 0 {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ?", c.Name, c.Brand.ID).First(&oldc)
+			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
 		} else if c.Type.ID != 0 {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			db.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ?", c.Name, c.Year).First(&oldc)
+			db.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		} else {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
 			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
