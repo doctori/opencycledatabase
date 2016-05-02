@@ -56,10 +56,10 @@ type Component struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
 	Name        string
-	Brand       Brand         `sql:"-"`
-	BrandID     int           `json:"-"`
-	Type        ComponentType `sql:"-"`
-	TypeID      int           `json:"-"`
+	Brand       Brand
+	BrandID     int `json:"-"`
+	Type        ComponentType
+	TypeID      int `json:"-"`
 	Description string
 	Standards   []Standard `gorm:"many2many:component_standards"`
 	Year        int
@@ -174,7 +174,8 @@ func (b Brand) save() Brand {
 			log.Printf("Saving Brand %#v", b)
 		}
 	} else {
-		db.Create(&b)
+		log.Printf("Creating Brand %#v", b)
+		db.Save(&b)
 	}
 	return b
 }
@@ -193,7 +194,7 @@ func (ct ComponentType) save() ComponentType {
 			log.Printf("Saving Component type %#v", ct)
 		}
 	} else {
-		db.Create(&ct)
+		db.Save(&ct)
 	}
 	return ct
 }
@@ -547,14 +548,25 @@ func (c Component) save() (error, Component) {
 
 	if db.NewRecord(c) {
 		oldc := new(Component)
+		db.Where(c.Brand).First(&c.Brand)
+		db.Where(c.Type).First(&c.Type)
 
-		db.Preload("Standards").Preload("ComponentType").Preload("Brand").Where("name = ? AND brand = ? AND type = ? AND year = ?", c.Name, c.Brand, c.Type, c.Year).First(&oldc)
+		if c.Brand.ID != 0 {
+			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
+			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ?", c.Name, c.Brand.ID).First(&oldc)
+		} else if c.Type.ID != 0 {
+			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
+			db.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ?", c.Name, c.Year).First(&oldc)
+		} else {
+			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
+			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
+		}
 		log.Println(oldc)
 		if oldc.Name == "" {
-			log.Println("Creating the record")
+			log.Println("Creating the Component !")
 			db.Create(&c)
 		} else {
-			log.Println("Updating the record")
+			log.Println("Updating the Component ...")
 			// Let's check that for our Standard ...
 			for j, ns := range c.Standards {
 				if ns.ID == 0 {
