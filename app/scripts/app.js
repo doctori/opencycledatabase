@@ -11,8 +11,10 @@
 angular
   .module('openBicycleDatabaseApp', [
     'bikeService',
+    'componentService',
     'ngAnimate',
     'ngCookies',
+    'ngMaterial',
     'ngResource',
     'ngRoute',
     'ngSanitize',
@@ -42,12 +44,17 @@ angular
         controller: 'NewBikeCtrl',
         controllerAs: 'bike'
       })
-
       .when('/about', {
         templateUrl: 'views/about.html',
         controller: 'AboutCtrl',
         controllerAs: 'about'
       })
+      .when('/components', {
+        templateUrl: 'views/components.html',
+        controller: 'ComponentListCtrl',
+        controllerAs: 'component'
+      })
+
       .otherwise({
         redirectTo: '/'
       });

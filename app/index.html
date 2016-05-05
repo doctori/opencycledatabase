@@ -9,6 +9,8 @@
     <!-- build:css(.) styles/vendor.css -->
     <!-- bower:css -->
     <link rel="stylesheet" href="bower_components/angular-xeditable/dist/css/xeditable.css" />
+    <link rel="stylesheet" href="bower_components/angular-material/angular-material.css" />
+    <link rel="stylesheet" href="bower_components/angular-material-data-table/dist/md-data-table.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
@@ -41,6 +43,7 @@
             <ul class="nav navbar-nav">
               <li class="active"><a translate href="#/">Home</a></li>
               <li><a translate ng-href="#/about">About</a></li>
+              <li><a translate href="#/components">Components</a></li>
               <li><a translate ng-href="#/">Contact</a></li>
             </ul>
           </div>
@@ -84,6 +87,10 @@
     <script src="bower_components/angular-xeditable/dist/js/xeditable.js"></script>
     <script src="bower_components/angular-gettext/dist/angular-gettext.js"></script>
     <script src="bower_components/ng-file-upload/ng-file-upload.js"></script>
+    <script src="bower_components/angular-aria/angular-aria.js"></script>
+    <script src="bower_components/angular-messages/angular-messages.js"></script>
+    <script src="bower_components/angular-material/angular-material.js"></script>
+    <script src="bower_components/angular-material-data-table/dist/md-data-table.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -92,7 +99,9 @@
         <script src="scripts/controllers/main.js"></script>
         <script src="scripts/controllers/about.js"></script>
         <script src="scripts/services/bike.js"></script>
+        <script src="scripts/services/component.js"></script>
         <script src="scripts/controllers/bike.js"></script>
+        <script src="scripts/controllers/component.js"></script>
         <script src="scripts/translations.js"</script>
         <!-- endbuild -->
 </body>

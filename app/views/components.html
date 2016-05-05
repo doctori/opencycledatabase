@@ -2,15 +2,15 @@
 	<div class="col-md-1"></div>
 	<div class="col-md-9">
 		<ul class="list-group">
-			<li class="list-group-item" ng-repeat="bike in bikes" >
+			<li class="list-group-item" ng-repeat="component in components" >
 				<div class="row">
 					<div class="col-md-4">
-						<a class="text-center" ng-href="#/bike/{{bike.ID}}">
-							<h3> {{bike.Name}}</h3>
+						<a class="text-center" ng-href="#/component/{{component.ID}}">
+							<h3> {{component.Name}}</h3>
 						</a>
 					</div>
 					<div class="col-md-6" >
-					Name : {{bike.Name}} || Brand : {{bike.Brand.Name}} <br/> Description : {{bike.Description}}
+					Name : {{component.Name}} || Brand : {{component.Brand.Name}} <br/> Description : {{component.Description}}
 					</div>
 					<div class="col-md-1">
 					<button ng-click='remove($index,bike)' type="button" class="btn btn-danger">Remove</button>
@@ -20,6 +20,6 @@
 		</ul>
 	</div>
 	<div class="col-md-2">
-	<a href="#/new-bike" role="button" class="btn btn-primary">Add New Bike !</a>
+	<a href="#/new-component" role="button" class="btn btn-primary">Add New Component !</a>
 	</div>
 </div>
