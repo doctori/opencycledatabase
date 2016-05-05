@@ -12,13 +12,10 @@ angular
   .module('openBicycleDatabaseApp', [
     'bikeService',
     'componentService',
-    'ngAnimate',
     'ngCookies',
     'ngMaterial',
     'ngResource',
     'ngRoute',
-    'ngSanitize',
-    'ngTouch',
     'gettext',
     'xeditable',
     'ngFileUpload'
@@ -32,7 +29,7 @@ angular
       .when('/', {
         templateUrl: 'views/bike.html',
         controller: 'BikeListCtrl',
-        controllerAs: 'bike'
+        controllerAs: 'bikeCtrl'
       })
       .when('/bike/:bikeID',{
         templateUrl: 'views/bike-detail.html',

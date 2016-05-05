@@ -1,25 +1,17 @@
-<div class="row">
-	<div class="col-md-1"></div>
-	<div class="col-md-9">
-		<ul class="list-group">
-			<li class="list-group-item" ng-repeat="bike in bikes" >
-				<div class="row">
-					<div class="col-md-4">
-						<a class="text-center" ng-href="#/bike/{{bike.ID}}">
-							<h3> {{bike.Name}}</h3>
-						</a>
-					</div>
-					<div class="col-md-6" >
-					Name : {{bike.Name}} || Brand : {{bike.Brand.Name}} <br/> Description : {{bike.Description}}
-					</div>
-					<div class="col-md-1">
-					<button ng-click='remove($index,bike)' type="button" class="btn btn-danger">Remove</button>
-					</div>
-				</div>
-			</li>
-		</ul>
-	</div>
-	<div class="col-md-2">
-	<a href="#/new-bike" role="button" class="btn btn-primary">Add New Bike !</a>
-	</div>
-</div>
+<md-sidenav md-is-locked-open="true" class="md-whiteframe-z2">
+	<md-list>
+		<md-list-item ng-repeat="bike in bikeCtrl.bikes">
+			<md-button ng-click="bikeCtrl.selectBike(bike)" ng-class="{'selected' : bike === bikeCtrl.selected}">
+			{{bike.Name}}|{{bike.Brand.Name}}
+			</md-button>
+
+		</md-list-item>
+	</md-list>
+</md-sidenav>
+<!-- Container #4 -->
+<md-content flex id="content">
+	<h1>PROUT</h1>
+	<h2>{{bikeCtrl.selected.Name}}</h2>
+	<p>{{bikeCtrl.selected.Description}}</p>
+	<p>{{bikeCtrl.selected.Brand.Name }}</p>
+</md-content>

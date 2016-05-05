@@ -7,18 +7,50 @@
  * # BikecontrollerCtrl
  * Controller of the openBicycleDatabaseApp
  */
-angular.module('openBicycleDatabaseApp')
-  .controller('BikeListCtrl', function ($scope, Bike) {
-    $scope.bikes = Bike.query();
-    $scope.remove = function(index,bike){
+
+ function bikeListCtrl(Bike, $scope, $mdSidenav, $mdBottomSheet) {
+    var self = this;
+    self.selected     = null;
+    self.bikes        = [ ];
+
+    Bike.query(function (bikes){
+        self.bikes = [].concat(bikes)
+        self.select = bikes[0];
+      });
+      
+    self.selectBike = selectBike;
+    self.toggleList = toggleUsersList;
+
+    self.remove = function(index,bike){
       console.log(index);
       console.log(bike);
       bike.$remove(function(){
-        $scope.bikes = Bike.query();
+        self.bikes = Bike.query();
       });
       
     };
-  })
+
+
+   /**
+   * Select the current bike
+   * @param menuId
+   */
+    function selectBike ( bike ) {
+      console.log(" BIKE SELECTED");
+      console.log(bike)
+      self.selected = angular.isNumber(bike) ? self.bikes[bike] : bike;
+    }
+   /**
+   * Hide or Show the 'left' sideNav area
+   */
+    function toggleUsersList() {
+      $mdSidenav('left').toggle();
+    }
+  }
+ 
+
+angular.module('openBicycleDatabaseApp')
+  .controller('BikeListCtrl',['Bike','$scope','$mdSidenav','$mdBottomSheet',bikeListCtrl ])
   .controller('BikeDetailCtrl', function ($scope, $routeParams,Bike) {
     Bike.get({id:$routeParams.bikeID},function(bike){
       console.log(bike);
