@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"bytes"
@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	//"github.com/satori/go.uuid"
@@ -24,6 +25,40 @@ import (
 )
 
 const PER_PAGE int = 30
+
+type (
+	GetNotSupported    struct{}
+	PostNotSupported   struct{}
+	PutNotSupported    struct{}
+	DeleteNotSupported struct{}
+)
+
+func (GetNotSupported) Get(values url.Values, id int) (int, interface{}) {
+	return 405, ""
+}
+
+func (PostNotSupported) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+	return 405, ""
+}
+
+func (PutNotSupported) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
+	return 405, ""
+}
+
+func (DeleteNotSupported) Delete(values url.Values, id int) (int, interface{}) {
+	return 405, ""
+}
+
+type DBConfig struct {
+	Host     string `json:host`
+	Username string `json:username`
+	Password string `json:password`
+	Port     int    `json:port`
+	DBname   string `json:dbname`
+}
+type Config struct {
+	DB DBConfig `json:db`
+}
 
 type ComponentType struct {
 	gorm.Model
@@ -89,31 +124,47 @@ type Standard struct {
 	Description string
 }
 
-var db = &gorm.DB{}
+var (
+	DB *gorm.DB
+)
 
-func initDB(config Config) *gorm.DB {
-	connectionString := fmt.Sprintf(
-		"user=%s password='%s' host=%s dbname=%s",
-		config.DB.Username,
-		config.DB.Password,
-		config.DB.Host,
-		config.DB.DBname)
-	log.Printf("Connecting to %s", connectionString)
-	db, err := gorm.Open("postgres", connectionString)
+func init() {
+	// Load Application Configuration info our Config Struct
+	file, err := os.Open("conf/mainConfig.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var config Config
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&config)
+	log.Printf("%#v", config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	DB, err = connectDB(config.DB)
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
-	db.LogMode(true)
-	db.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
-	db.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year")
-	db.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year")
-	db.Model(&Standard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
-	db.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
-	db.AutoMigrate(&Bike{}, &Component{}, &Standard{}, &Image{}, &Brand{}, &ComponentType{})
+	DB.LogMode(true)
+	DB.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
+	DB.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year")
+	DB.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year")
+	DB.Model(&Standard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
+	DB.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
+	DB.AutoMigrate(&Bike{}, &Component{}, &Standard{}, &Image{}, &Brand{}, &ComponentType{})
 	checkErr(err, "Create tables failed")
 
-	return db
 }
-
+func connectDB(config DBConfig) (db *gorm.DB, err error) {
+	log.Printf("Connecting to %s", config.Host)
+	db, err = gorm.Open("postgres", fmt.Sprintf(
+		"user=%s password='%s' host=%s dbname=%s",
+		config.Username,
+		config.Password,
+		config.Host,
+		config.DBname))
+	return
+}
 func checkErr(err error, msg string) {
 	if err != nil {
 		log.Panicln(msg, err)
@@ -121,15 +172,14 @@ func checkErr(err error, msg string) {
 }
 
 func (Brand) Get(values url.Values, id int) (int, interface{}) {
-
 	if id == 0 {
 		var brands []Brand
-		//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
-		db.Find(&brands)
+		//DB.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
+		DB.Find(&brands)
 		return 200, brands
 	}
 	var brand Brand
-	err := db.First(&brand, id).RecordNotFound()
+	err := DB.First(&brand, id).RecordNotFound()
 	if err {
 		return 404, "Brand not found"
 	}
@@ -144,7 +194,7 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 			return 500, "That Shouldn't have appended"
 		}
 
-		err := db.First(&brand, id).RecordNotFound()
+		err := DB.First(&brand, id).RecordNotFound()
 		if err {
 			return 404, "Brand not found"
 		}
@@ -156,157 +206,61 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 			return 500, "Internal Error"
 		}
 		log.Println(brand)
-		brand = brand.save()
+		brand.save()
 	}
 
 	return 200, brand
 }
 
-func (b Brand) save() Brand {
-	if db.NewRecord(b) {
+func (b *Brand) save() {
+	if DB.NewRecord(b) {
 		oldb := new(Brand)
-		db.Where("name = ?", b.Name).First(&oldb)
+		DB.Where("name = ?", b.Name).First(oldb)
 		if oldb.Name == "" {
 			log.Println("Recording the New Brand")
-			db.Create(&b)
+			DB.Create(b)
 		} else {
 			log.Println("Updating The Existing  Brand")
-			db.Model(&oldb).Updates(&b)
-			b = *oldb
-			log.Printf("Saving Brand %#v", b)
+			/*DB.Model(oldb).Updates(b)
+			b = oldb*/
+			DB.Model(b).Updates(oldb)
+			log.Printf("Saving Brand %#v\n", b)
 		}
 	} else {
-		log.Printf("Creating Brand %#v", b)
-		db.Save(&b)
+		log.Printf("Creating Brand %#v\n", b)
+		DB.Save(b)
 	}
-	return b
+	log.Printf("Brand %#v has been SAVED\n", b)
 }
 
 func (ct ComponentType) save() ComponentType {
-	if db.NewRecord(ct) {
+	if DB.NewRecord(ct) {
 		oldct := new(ComponentType)
-		db.Where("name = ?", oldct.Name).First(&oldct)
+		DB.Where("name = ?", oldct.Name).First(&oldct)
 		if oldct.Name == "" {
 			log.Println("Recording the New Component type")
-			db.Create(&ct)
+			DB.Create(&ct)
 		} else {
 			log.Println("Updating The Existing Component Type")
-			db.Model(&oldct).Updates(&ct)
+			DB.Model(&oldct).Updates(&ct)
 			ct = *oldct
 			log.Printf("Saving Component type %#v", ct)
 		}
 	} else {
-		db.Save(&ct)
+		DB.Save(&ct)
 	}
 	return ct
 }
 
-func (Image) Get(values url.Values, id int) (int, interface{}) {
-	var img Image
-	if id == 0 {
-		return 500, "Could not GET All Images"
-	}
-	recordNotFound := db.First(&img, id).RecordNotFound()
-	if recordNotFound {
-		return 404, "Image Not Found"
-	}
-	file, err := os.Open(img.Path)
-	log.Printf("Serving : %v", img.Path)
-	defer file.Close()
-	if err != nil {
-		log.Println("Could Not Find the Image")
-		return 404, "File Not Found"
-	}
-	// Detect Mime Type
-	//buff := make([]byte, 512)
-	//_, err = file.ReadAt(buff, 0)
-	//img.ContentType = http.DetectContentType(buff)
-	img.ContentType = "image/jpeg"
-
-	decodedImg, _, err := image.Decode(file)
-	file.Close()
-	if err != nil {
-		log.Panic(err)
-	}
-	resizedImg := resize.Resize(600, 0, decodedImg, resize.Lanczos3)
-	var buffer bytes.Buffer
-	jpeg.Encode(&buffer, resizedImg, nil)
-
-	img.Content = buffer.Bytes()
-	img.ContentLength = int64(buffer.Len())
-
-	return 200, img
-
-}
-func (i Image) GetContentType() string {
-	return i.ContentType
-}
-func (i Image) GetContentLength() string {
-	return strconv.FormatInt(i.ContentLength, 10)
-}
-func (i Image) GetContent() []byte {
-	return i.Content
-}
-func (Image) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
-	uploadFolder := "upload/"
-	mediaType, params, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
-	checkErr(err, "Could Not Determine the Content Type")
-	img := Image{}
-	if strings.HasPrefix(mediaType, "multipart/") {
-		log.Println("YOU ARE POSTING AN IMAGE")
-		multipartReader := multipart.NewReader(request.Body, params["boundary"])
-		// Should Build buffer and Write it at the end (loop thour the nextpart !)
-		partReader, err := multipartReader.NextPart()
-		fileName := partReader.FileName()
-		filePath := uploadFolder + fileName
-		file, err := os.Create(filePath)
-		if err != nil {
-			log.Println(err)
-			return 500, err
-		}
-		checkErr(err, "Could Not Get the Next Part")
-		if _, err := io.Copy(file, partReader); err != nil {
-			log.Fatal(err)
-			return 500, err
-		}
-		// Let's record this image and return it to our client
-		img = Image{Name: fileName, Path: filePath}
-		recordedImg := img.save()
-		log.Printf("Posted : %#v", img)
-		return 200, recordedImg
-	} else {
-		return 500, "Nhope"
-	}
-
-	return 200, img
-}
-
-func (i Image) save() Image {
-	if db.NewRecord(i) {
-		oldi := new(Image)
-		db.Where("name = ? and path = ? ", i.Name, i.Path).First(&oldi)
-		if oldi.Name == "" {
-			log.Println("Recording the New Image")
-			db.Create(&i)
-		} else {
-			log.Println("Updating The Image Record")
-			db.Model(&oldi).Updates(&i)
-			i = *oldi
-			log.Printf("Saving Image %#v", i)
-		}
-	} else {
-		db.Create(&i)
-	}
-	return i
-}
-
 // Should Return Errors !!
-func (b Bike) save() {
+func (b *Bike) save() {
 	// If we have a new record we create it
-	if db.NewRecord(b) {
+	if DB.NewRecord(b) {
 		oldb := new(Bike)
-		b.Brand = b.Brand.save()
-		db.Preload("Components").Preload("Brand").Where("name = ? AND brand_id = ? AND year = ?", b.Name, b.Brand.ID, b.Year).First(&oldb)
+		b.Brand.save()
+		log.Printf(" >>>>>>BRAND IS : %#v\n", b.Brand)
+		log.Printf("Looking For : bike WHERE name = %v AND brand_id = %v AND year = %v", b.Name, b.Brand.ID, b.Year)
+		DB.Preload("Brand").Where("name = ? AND brand_id = ? AND year = ?", b.Name, b.Brand.ID, b.Year).First(oldb)
 		log.Println(oldb)
 		if oldb.Name == "" {
 			log.Println("==========================================================================================")
@@ -319,9 +273,9 @@ func (b Bike) save() {
 				b.Components[i] = component
 			}
 			// We skip association since it can't say if an association already exists ...
-			db.Set("gorm:save_associations", false).Create(&b)
+			DB.Set("gorm:save_associations", false).Create(&b)
 			// We update our just created object in order to add it's associations ...
-			db.Save(&b)
+			DB.Save(b)
 		} else {
 			log.Println("Updating the record")
 			for i, nc := range b.Components {
@@ -334,16 +288,26 @@ func (b Bike) save() {
 					b.Components[i] = nc
 				}
 			}
-			db.Model(&oldb).Updates(&b)
-			b = *oldb
+			// Reflect our bikes in order to loop throught its properties
+			oldbR := reflect.ValueOf(oldb).Elem()
+			bR := reflect.ValueOf(b).Elem()
+			for i := 0; i < bR.NumField(); i++ {
+				// We retrieve the current element from our new Bike
+				currElem := bR.Field(i).Interface()
+				// If empty we put the old values
+				if (currElem == nil) || (currElem == 0 || (currElem == "") || (currElem == false)) {
+					bR.Field(i).Set(reflect.Value(oldbR.Field(i)))
+				}
+			}
+			DB.Save(b)
 		}
 	} else {
-		b.Brand = b.Brand.save()
+		b.Brand.save()
 		for i, component := range b.Components {
 			_, component := component.save()
 			b.Components[i] = component
 		}
-		db.Save(&b)
+		DB.Save(b)
 	}
 }
 
@@ -359,7 +323,7 @@ func GetAllBikes(page string, per_page string) interface{} {
 	}
 	var bikes []Bike
 	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
-	db.Preload("Components").Preload("Brand").Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
+	DB.Preload("Components").Preload("Brand").Preload("Components.Type").Preload("Components.Brand").Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
 	return bikes
 }
 
@@ -375,7 +339,7 @@ func (Bike) Get(values url.Values, id int) (int, interface{}) {
 		return 200, GetAllBikes(page, per_page)
 	}
 	var bike Bike
-	err := db.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
+	err := DB.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 	if err {
 		return 404, "Bike not found"
 	}
@@ -386,7 +350,7 @@ func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 	if id != 0 {
 		log.Print("Will Delete the ID : ")
 		log.Println(id)
-		err := db.Where("id = ?", id).Delete(&Bike{}).RecordNotFound()
+		err := DB.Where("id = ?", id).Delete(&Bike{}).RecordNotFound()
 		if err {
 			return 404, "Id Not Found"
 		}
@@ -405,7 +369,7 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 			return 500, "FUCK"
 		}
 		log.Printf("%#v", body)
-		err := db.Preload("Brand").Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
+		err := DB.Preload("Brand").Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 		if err {
 			return 404, "Bike not found"
 		}
@@ -419,10 +383,11 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 		// Clean the unName Components
 		components := bike.Components[:0]
 		for _, component := range bike.Components {
-			if component.Name != "" {
+			if len(component.Name) > 3 {
 				components = append(components, component)
 			}
 		}
+		bike.Components = components
 		bike.save()
 	}
 	return 200, bike
@@ -539,7 +504,7 @@ func (Component) Get(values url.Values, id int) (int, interface{}) {
 
 	log.Println(values.Get("name"))
 	var c Component
-	err := db.Preload("Standards").Preload("Type").Preload("Brand").Find(&c, "name= ? ", values.Get("name")).RecordNotFound()
+	err := DB.Preload("Standards").Preload("Type").Preload("Brand").Find(&c, "name= ? ", values.Get("name")).RecordNotFound()
 	if err {
 		return 404, "Component not found"
 	}
@@ -558,7 +523,7 @@ func (Component) getAll(page string, per_page string) []Component {
 
 	var components []Component
 	//TODO : return LINKS Header with the next page and previous page
-	db.Preload("Standards").Preload("Type").Preload("Brand").Offset(ipage * iper_page).Limit(iper_page).Find(&components)
+	DB.Preload("Standards").Preload("Type").Preload("Brand").Offset(ipage * iper_page).Limit(iper_page).Find(&components)
 	return components
 }
 
@@ -579,25 +544,25 @@ func (Component) getCompatible(s Standard) []Component {
 }
 
 func (c Component) save() (error, Component) {
-	if db.NewRecord(c) {
+	if DB.NewRecord(c) {
 		oldc := new(Component)
-		db.Where(c.Brand).First(&c.Brand)
-		db.Where(c.Type).First(&c.Type)
+		DB.Where(c.Brand).First(&c.Brand)
+		DB.Where(c.Type).First(&c.Type)
 
 		if c.Brand.ID != 0 {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
+			DB.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
 		} else if c.Type.ID != 0 {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			db.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
+			DB.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		} else {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
+			DB.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		}
 		log.Println(oldc)
 		if oldc.Name == "" {
 			log.Println("Creating the Component !")
-			db.Create(&c)
+			DB.Create(&c)
 		} else {
 			log.Println("Updating the Component ...")
 			// Let's check that for our Standard ...
@@ -610,16 +575,113 @@ func (c Component) save() (error, Component) {
 					}
 				}
 			}
-			c.Brand = c.Brand.save()
+			c.Brand.save()
 			c.Type = c.Type.save()
-			db.Model(&oldc).Updates(&c)
+			DB.Model(&oldc).Updates(&c)
 			c = *oldc
 		}
 	} else {
 		// Maybe Save nested object independantly ?
 		c.Type = c.Type.save()
-		c.Brand = c.Brand.save()
-		db.Save(&c)
+		c.Brand.save()
+		DB.Save(&c)
 	}
-	return db.Error, c
+	return DB.Error, c
+}
+func (Image) Get(values url.Values, id int) (int, interface{}) {
+	var img Image
+	if id == 0 {
+		return 500, "Could not GET All Images"
+	}
+	recordNotFound := DB.First(&img, id).RecordNotFound()
+	if recordNotFound {
+		return 404, "Image Not Found"
+	}
+	file, err := os.Open(img.Path)
+	log.Printf("Serving : %v", img.Path)
+	defer file.Close()
+	if err != nil {
+		log.Println("Could Not Find the Image")
+		return 404, "File Not Found"
+	}
+	// Detect Mime Type
+	//buff := make([]byte, 512)
+	//_, err = file.ReadAt(buff, 0)
+	//img.ContentType = http.DetectContentType(buff)
+	img.ContentType = "image/jpeg"
+
+	decodedImg, _, err := image.Decode(file)
+	file.Close()
+	if err != nil {
+		log.Panic(err)
+	}
+	resizedImg := resize.Resize(600, 0, decodedImg, resize.Lanczos3)
+	var buffer bytes.Buffer
+	jpeg.Encode(&buffer, resizedImg, nil)
+
+	img.Content = buffer.Bytes()
+	img.ContentLength = int64(buffer.Len())
+
+	return 200, img
+
+}
+func (i Image) GetContentType() string {
+	return i.ContentType
+}
+func (i Image) GetContentLength() string {
+	return strconv.FormatInt(i.ContentLength, 10)
+}
+func (i Image) GetContent() []byte {
+	return i.Content
+}
+func (Image) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+	uploadFolder := "upload/"
+	mediaType, params, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
+	checkErr(err, "Could Not Determine the Content Type")
+	img := Image{}
+	if strings.HasPrefix(mediaType, "multipart/") {
+		log.Println("YOU ARE POSTING AN IMAGE")
+		multipartReader := multipart.NewReader(request.Body, params["boundary"])
+		// Should Build buffer and Write it at the end (loop thour the nextpart !)
+		partReader, err := multipartReader.NextPart()
+		fileName := partReader.FileName()
+		filePath := uploadFolder + fileName
+		file, err := os.Create(filePath)
+		if err != nil {
+			log.Println(err)
+			return 500, err
+		}
+		checkErr(err, "Could Not Get the Next Part")
+		if _, err := io.Copy(file, partReader); err != nil {
+			log.Fatal(err)
+			return 500, err
+		}
+		// Let's record this image and return it to our client
+		img = Image{Name: fileName, Path: filePath}
+		img.save()
+		log.Printf("Posted : %#v", img)
+		return 200, img
+	} else {
+		return 500, "Nhope"
+	}
+
+	return 200, img
+}
+
+func (i *Image) save() {
+	if DB.NewRecord(i) {
+		oldi := new(Image)
+		DB.Where("name = ? and path = ? ", i.Name, i.Path).First(&oldi)
+		if oldi.Name == "" {
+			log.Println("Recording the New Image")
+			DB.Create(&i)
+		} else {
+			log.Println("Updating The Image Record")
+			DB.Model(&oldi).Updates(&i)
+			i = oldi
+			log.Printf("Saving Image %#v\n", i)
+		}
+	} else {
+		DB.Create(&i)
+	}
 }
