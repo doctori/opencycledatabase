@@ -206,13 +206,21 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 			return 500, "Internal Error"
 		}
 		log.Println(brand)
-		brand.save()
+		brand.Save()
 	}
 
 	return 200, brand
 }
 
-func (b *Brand) save() {
+// Returns True if the left Brand Equals the Right Brand
+func (lb *Brand) Equals(rb *Brand) bool {
+	if lb.Name == rb.Name && lb.Description == rb.Description && lb.ID == rb.ID {
+		return true
+	} else {
+		return false
+	}
+}
+func (b *Brand) Save() {
 	if DB.NewRecord(b) {
 		oldb := new(Brand)
 		DB.Where("name = ?", b.Name).First(oldb)
@@ -233,7 +241,7 @@ func (b *Brand) save() {
 	log.Printf("Brand %#v has been SAVED\n", b)
 }
 
-func (ct ComponentType) save() ComponentType {
+func (ct ComponentType) Save() ComponentType {
 	if DB.NewRecord(ct) {
 		oldct := new(ComponentType)
 		DB.Where("name = ?", oldct.Name).First(&oldct)
@@ -253,11 +261,11 @@ func (ct ComponentType) save() ComponentType {
 }
 
 // Should Return Errors !!
-func (b *Bike) save() {
+func (b *Bike) Save() {
 	// If we have a new record we create it
 	if DB.NewRecord(b) {
 		oldb := new(Bike)
-		b.Brand.save()
+		b.Brand.Save()
 		log.Printf(" >>>>>>BRAND IS : %#v\n", b.Brand)
 		log.Printf("Looking For : bike WHERE name = %v AND brand_id = %v AND year = %v", b.Name, b.Brand.ID, b.Year)
 		DB.Preload("Brand").Where("name = ? AND brand_id = ? AND year = ?", b.Name, b.Brand.ID, b.Year).First(oldb)
@@ -268,7 +276,7 @@ func (b *Bike) save() {
 			log.Printf("%#v", b)
 			log.Println("==========================================================================================")
 			for i, component := range b.Components {
-				_, component := component.save()
+				_, component := component.Save()
 
 				b.Components[i] = component
 			}
@@ -280,7 +288,7 @@ func (b *Bike) save() {
 			log.Println("Updating the record")
 			for i, nc := range b.Components {
 
-				err, nc := nc.save()
+				err, nc := nc.Save()
 				if err != nil {
 					log.Printf("Could not save : %v\n", nc)
 				} else {
@@ -302,9 +310,9 @@ func (b *Bike) save() {
 			DB.Save(b)
 		}
 	} else {
-		b.Brand.save()
+		b.Brand.Save()
 		for i, component := range b.Components {
-			_, component := component.save()
+			_, component := component.Save()
 			b.Components[i] = component
 		}
 		DB.Save(b)
@@ -388,14 +396,14 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 			}
 		}
 		bike.Components = components
-		bike.save()
+		bike.Save()
 	}
 	return 200, bike
 }
 
 func (Bike) addComponent(bike Bike, component Component) {
 	bike.Components = append(bike.Components, component)
-	bike.save()
+	bike.Save()
 }
 
 func (Bike) getCompatibleComponents(bike Bike) []Component {
@@ -417,7 +425,7 @@ func (Standard) Post(values url.Values, request *http.Request, id int, adj strin
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.save()
+	err, standard = standard.Save()
 	if err != nil {
 		return 500, "Could Not Save the Standard"
 	}
@@ -433,7 +441,7 @@ func (Standard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.save()
+	err, standard = standard.Save()
 	if err != nil {
 		return 500, "Could Not Save the Standard"
 	}
@@ -462,7 +470,7 @@ func (Standard) Delete(values url.Values, id int) (int, interface{}) {
 	}
 	return 200, ""
 }
-func (s Standard) save() (error, Standard) {
+func (s Standard) Save() (error, Standard) {
 	filename := "db/standard_" + s.Name + ".json"
 	//if (s.ID == ""){
 	//	s.ID = uuid.NewV4().String()
@@ -487,7 +495,7 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 		panic("shiit")
 	}
 	log.Println(component)
-	err, component = component.save()
+	err, component = component.Save()
 	if err != nil {
 		return 500, "Could Not Save the Component"
 	}
@@ -543,7 +551,7 @@ func (Component) getCompatible(s Standard) []Component {
 	return compatibleComponents
 }
 
-func (c Component) save() (error, Component) {
+func (c Component) Save() (error, Component) {
 	if DB.NewRecord(c) {
 		oldc := new(Component)
 		DB.Where(c.Brand).First(&c.Brand)
@@ -575,15 +583,15 @@ func (c Component) save() (error, Component) {
 					}
 				}
 			}
-			c.Brand.save()
-			c.Type = c.Type.save()
+			c.Brand.Save()
+			c.Type = c.Type.Save()
 			DB.Model(&oldc).Updates(&c)
 			c = *oldc
 		}
 	} else {
 		// Maybe Save nested object independantly ?
-		c.Type = c.Type.save()
-		c.Brand.save()
+		c.Type = c.Type.Save()
+		c.Brand.Save()
 		DB.Save(&c)
 	}
 	return DB.Error, c
@@ -658,7 +666,7 @@ func (Image) Post(values url.Values, request *http.Request, id int, adj string) 
 		}
 		// Let's record this image and return it to our client
 		img = Image{Name: fileName, Path: filePath}
-		img.save()
+		img.Save()
 		log.Printf("Posted : %#v", img)
 		return 200, img
 	} else {
@@ -668,7 +676,7 @@ func (Image) Post(values url.Values, request *http.Request, id int, adj string) 
 	return 200, img
 }
 
-func (i *Image) save() {
+func (i *Image) Save() {
 	if DB.NewRecord(i) {
 		oldi := new(Image)
 		DB.Where("name = ? and path = ? ", i.Name, i.Path).First(&oldi)
