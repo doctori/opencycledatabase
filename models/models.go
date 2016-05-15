@@ -99,6 +99,7 @@ type Component struct {
 	TypeID      int `json:"-"`
 	Description string
 	Standards   []Standard `gorm:"many2many:component_standards"`
+	Images      []Image    `gorm:"many2many:component_images"`
 	Year        string
 	PutNotSupported
 	DeleteNotSupported
@@ -141,14 +142,21 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	logFile, err := os.OpenFile("model_logs.log", os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		log.Panicln("Could Not Open the log File !!")
+		log.Println(err)
+		os.Exit(4)
+	}
+	log.SetOutput(logFile)
 	DB, err = connectDB(config.DB)
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
 	DB.LogMode(true)
+
 	DB.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
-	DB.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year")
-	DB.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year")
+	DB.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year, brand_id")
+	DB.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year, brand_id")
 	DB.Model(&Standard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
 	DB.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
 	DB.AutoMigrate(&Bike{}, &Component{}, &Standard{}, &Image{}, &Brand{}, &ComponentType{})
@@ -221,10 +229,12 @@ func (lb *Brand) Equals(rb *Brand) bool {
 	}
 }
 func (b *Brand) Save() {
+	// if b has no ID
 	if DB.NewRecord(b) {
 		oldb := new(Brand)
+		// Let's find if it exists
 		DB.Where("name = ?", b.Name).First(oldb)
-		if oldb.Name == "" {
+		if oldb.ID == 0 && oldb.Name == "" {
 			log.Println("Recording the New Brand")
 			DB.Create(b)
 		} else {
@@ -235,29 +245,28 @@ func (b *Brand) Save() {
 			log.Printf("Saving Brand %#v\n", b)
 		}
 	} else {
-		log.Printf("Creating Brand %#v\n", b)
+		log.Printf("Updating Brand %#v\n", b)
 		DB.Save(b)
 	}
 	log.Printf("Brand %#v has been SAVED\n", b)
 }
 
-func (ct ComponentType) Save() ComponentType {
+func (ct *ComponentType) Save() {
 	if DB.NewRecord(ct) {
 		oldct := new(ComponentType)
 		DB.Where("name = ?", oldct.Name).First(&oldct)
 		if oldct.Name == "" {
 			log.Println("Recording the New Component type")
-			DB.Create(&ct)
+			DB.Create(ct)
 		} else {
 			log.Println("Updating The Existing Component Type")
-			DB.Model(&oldct).Updates(&ct)
-			ct = *oldct
-			log.Printf("Saving Component type %#v", ct)
+			DB.Model(&oldct).Updates(ct)
+			ct = oldct
+			log.Printf("Saving Component type %#v", *ct)
 		}
 	} else {
-		DB.Save(&ct)
+		DB.Save(ct)
 	}
-	return ct
 }
 
 // Should Return Errors !!
@@ -275,10 +284,8 @@ func (b *Bike) Save() {
 			log.Println("Creating the record")
 			log.Printf("%#v", b)
 			log.Println("==========================================================================================")
-			for i, component := range b.Components {
-				_, component := component.Save()
-
-				b.Components[i] = component
+			for i := range b.Components {
+				b.Components[i].Save()
 			}
 			// We skip association since it can't say if an association already exists ...
 			DB.Set("gorm:save_associations", false).Create(&b)
@@ -286,14 +293,13 @@ func (b *Bike) Save() {
 			DB.Save(b)
 		} else {
 			log.Println("Updating the record")
-			for i, nc := range b.Components {
+			for i := range b.Components {
 
-				err, nc := nc.Save()
+				err := b.Components[i].Save()
 				if err != nil {
-					log.Printf("Could not save : %v\n", nc)
+					log.Printf("Could not save : %v\n", b.Components[i])
 				} else {
-					log.Printf("Saved : %v\n", nc)
-					b.Components[i] = nc
+					log.Printf("Saved : %v\n", b.Components[i])
 				}
 			}
 			// Reflect our bikes in order to loop throught its properties
@@ -311,9 +317,8 @@ func (b *Bike) Save() {
 		}
 	} else {
 		b.Brand.Save()
-		for i, component := range b.Components {
-			_, component := component.Save()
-			b.Components[i] = component
+		for i := range b.Components {
+			b.Components[i].Save()
 		}
 		DB.Save(b)
 	}
@@ -425,8 +430,8 @@ func (Standard) Post(values url.Values, request *http.Request, id int, adj strin
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.Save()
-	if err != nil {
+	errs := standard.Save()
+	if errs != nil {
 		return 500, "Could Not Save the Standard"
 	}
 	return 200, standard
@@ -441,8 +446,8 @@ func (Standard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.Save()
-	if err != nil {
+	errs := standard.Save()
+	if errs != nil {
 		return 500, "Could Not Save the Standard"
 	}
 	return 200, standard
@@ -470,17 +475,25 @@ func (Standard) Delete(values url.Values, id int) (int, interface{}) {
 	}
 	return 200, ""
 }
-func (s Standard) Save() (error, Standard) {
-	filename := "db/standard_" + s.Name + ".json"
-	//if (s.ID == ""){
-	//	s.ID = uuid.NewV4().String()
-	//}
-	jsonBlob, err := json.Marshal(s)
-	if err != nil {
-		return err, s
+func (s *Standard) Save() []error {
+	var err []error
+	// If our Standard doesn't have an ID
+	if DB.NewRecord(s) {
+		olds := new(Standard)
+		DB.Where("name = ?", s.Name).First(&olds)
+		if olds.ID == 0 {
+			log.Println("Recording the New Standard")
+			err = DB.Create(s).GetErrors()
+		} else {
+			log.Println("Updating The Image Record")
+			err = DB.Model(&olds).Updates(s).GetErrors()
+			s = olds
+			log.Printf("Saved Standard %#v\n", s)
+		}
+	} else {
+		err = DB.Save(s).GetErrors()
 	}
-	err = ioutil.WriteFile(filename, jsonBlob, 0600)
-	return err, s
+	return err
 }
 
 func (Component) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
@@ -495,7 +508,7 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 		panic("shiit")
 	}
 	log.Println(component)
-	err, component = component.Save()
+	err = component.Save()
 	if err != nil {
 		return 500, "Could Not Save the Component"
 	}
@@ -540,6 +553,7 @@ func (Component) getCompatible(s Standard) []Component {
 	var compatibleComponents []Component
 	// Crado Way
 	c := new(Component)
+	// SRSLY ?
 	components := c.getAll("0", "30")
 	for _, component := range components {
 		for _, standard := range component.Standards {
@@ -551,26 +565,38 @@ func (Component) getCompatible(s Standard) []Component {
 	return compatibleComponents
 }
 
-func (c Component) Save() (error, Component) {
+func (c *Component) Save() error {
+	// the component has no ID
 	if DB.NewRecord(c) {
 		oldc := new(Component)
-		DB.Where(c.Brand).First(&c.Brand)
-		DB.Where(c.Type).First(&c.Type)
+
+		// Let's find the brand and Type
+		DB.Where("name = ? ", c.Brand.Name).First(&(c.Brand))
+		if c.Type.Name != "" {
+			DB.Where("name = ? ", c.Type.Name).First(&(c.Type))
+		}
 
 		if c.Brand.ID != 0 {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			DB.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
+			// We find the brand end the type.
+			if c.Type.ID != 0 {
+				log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
+				DB.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
+			} else {
+				log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
+				DB.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ? AND type_id = ? AND year = ?", c.Name, c.Brand.ID, c.Type.ID, c.Year).First(&oldc)
+			}
 		} else if c.Type.ID != 0 {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			DB.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
+			log.Printf("Looking for : name = %v AND type_id = %v AND year = %v", c.Name, c.Type.ID, c.Year)
+			DB.Preload("Standards").Preload("Type").Where("name = ? AND type_id = ? AND year = ?", c.Name, c.Type.ID, c.Year).First(&oldc)
+
 		} else {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			DB.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
+			log.Printf("Looking for : name = %v AND brand = %v AND type = %v", c.Name, c.Brand.Name, c.Type.Name, c.Year)
+			DB.Preload("Standards").Preload("Type", "name = ?", c.Type.Name).Preload("Brand", "name = ?", c.Brand.Name).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		}
 		log.Println(oldc)
 		if oldc.Name == "" {
 			log.Println("Creating the Component !")
-			DB.Create(&c)
+			DB.Create(c)
 		} else {
 			log.Println("Updating the Component ...")
 			// Let's check that for our Standard ...
@@ -583,19 +609,26 @@ func (c Component) Save() (error, Component) {
 					}
 				}
 			}
+			// Save the Images (Db Style)
+			for i := range c.Images {
+				c.Images[i].Save()
+			}
+
+			log.Printf(" >>>>>>>>>>>>> The Component Brand %#v Is Going to Be Saved been Saved", c.Brand)
 			c.Brand.Save()
-			c.Type = c.Type.Save()
-			DB.Model(&oldc).Updates(&c)
-			c = *oldc
+			log.Printf(" >>>>>>>>>>>>> The Component Brand %#v Has been Saved", c.Brand)
+			c.Type.Save()
+			DB.Model(&oldc).Updates(c)
 		}
 	} else {
 		// Maybe Save nested object independantly ?
-		c.Type = c.Type.Save()
+		c.Type.Save()
 		c.Brand.Save()
-		DB.Save(&c)
+		DB.Save(c)
 	}
-	return DB.Error, c
+	return DB.Error
 }
+
 func (Image) Get(values url.Values, id int) (int, interface{}) {
 	var img Image
 	if id == 0 {
@@ -676,20 +709,22 @@ func (Image) Post(values url.Values, request *http.Request, id int, adj string) 
 	return 200, img
 }
 
-func (i *Image) Save() {
-	if DB.NewRecord(i) {
+func (img *Image) Save() {
+
+	if DB.NewRecord(img) {
 		oldi := new(Image)
-		DB.Where("name = ? and path = ? ", i.Name, i.Path).First(&oldi)
-		if oldi.Name == "" {
+		DB.Where("name = ?", img.Name).First(oldi)
+		if oldi.ID == 0 && oldi.Name == "" {
 			log.Println("Recording the New Image")
-			DB.Create(&i)
+			DB.Create(img)
 		} else {
 			log.Println("Updating The Image Record")
-			DB.Model(&oldi).Updates(&i)
-			i = oldi
-			log.Printf("Saving Image %#v\n", i)
+			DB.Model(oldi).Updates(*img)
+			img = oldi
 		}
 	} else {
-		DB.Create(&i)
+		log.Printf("Saving Image %#v\n", *img)
+		DB.Save(img)
 	}
+	log.Printf("Saved Image %#v\n", *img)
 }

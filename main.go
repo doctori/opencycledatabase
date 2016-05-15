@@ -16,7 +16,7 @@ func main() {
 	api.AddResource(component, "/components")
 	api.AddResource(standard, "/standards")
 	api.AddResource(&models.Brand{}, "/brands")
-	api.AddNonJSONResource(image, "")
+	api.AddNonJSONResource(image, "/images")
 	fmt.Println("Launching brandToComponent")
 	fmt.Printf("Listening To :8080 \n")
 	go brandToComponent()

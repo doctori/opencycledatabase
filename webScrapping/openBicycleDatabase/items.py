@@ -29,6 +29,12 @@ class ComponentType(Item):
     Description = Field()
 
 
+class ImageItem(Item):
+    Name = Field()
+    ID   = Field()
+    URL  = Field()
+
+
 class ComponentItem(Item):
     Name = Field()
     Brand = Field()
@@ -37,3 +43,4 @@ class ComponentItem(Item):
     Description = Field()
     Year = Field()
     Standard = Field()
+    Images = Field()
