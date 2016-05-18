@@ -53,16 +53,20 @@ class VelobaseSpider(scrapy.Spider):
         brand = BrandItem()
         image = ImageItem()
         comptype['Name'] = response.xpath(
-            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[1]/td/text()').extract()[-1]
+            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[1]/td/text()'
+        ).extract()[-1]
 
         component['Name'] = response.xpath(
-            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[2]/td/text()').extract()[-1]
+            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[2]/td/text()'
+        ).extract()[-1].strip()
 
         brand['Name'] = response.xpath(
-            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[3]/td/a/text()').extract()[-1]
+            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr[3]/td/a/text()'
+        ).extract()[-1].strip()
 
         component['Country'] = response.xpath(
-            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr/td[contains(text(),"Country:")]/following-sibling::td/text()').extract()[-1]
+            '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr/td[contains(text(),"Country:")]/following-sibling::td/text()'
+            ).extract()[-1].strip()
 
         component['Description'] = response.xpath(
             '//td[@id="ctl00_ContentPlaceHolder1_AddInfoCell"]/p/text()'

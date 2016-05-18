@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from openBicycleDatabase.items import BikeItem, BrandItem, ComponentItem, ComponentType
+from openBicycleDatabase.items import BikeItem, BrandItem
+from openBicycleDatabase.items import ComponentItem, ComponentType, ImageItem
 
 
 class BikepediaSpider(scrapy.Spider):
@@ -50,21 +51,37 @@ class BikepediaSpider(scrapy.Spider):
 
         bike['Name'] = response.xpath(
             '//span[@id="ctl00_MainContent_TitleOfBike_modelLabel2"]/text()'
-        ).extract()[0].encode('utf8')
+        ).extract()[0].strip().encode('utf8')
 
         bikeBrand['Name'] = response.xpath(
             '//span[@id="ctl00_MainContent_TitleOfBike_brandLabel2"]/text()'
-        ).extract()[0].encode('utf8')
+        ).extract()[0].strip().encode('utf8')
         bike['Brand'] = bikeBrand
         bike['Year'] = response.xpath(
             '//span[@id="ctl00_MainContent_TitleOfBike_yearLabel2"]/text()'
-        ).extract()[0].encode('utf8')
+        ).extract()[0].strip().encode('utf8')
+        # Get The Images !
+        bike['Images'] = []
+        image = ImageItem()
+        # Get the thumbs
+        imageThumbs = response.xpath(
+            '//ul[@id="ctl00_MainContent_ListView1_itemPlaceholderContainer"]/li/a/img/@src'
+        ).extract()
+
+        # Convert the thumbs URL into Real Image URL (remove Thumbs etc ...)
+        for imageThumb in imageThumbs:
+            # Join to have the Full URL to be processed later 
+            # (push to /images and ID retrieved)
+            image['URL'] = imageThumb.replace('w=40&h=40&', '')
+            bike['Images'].append(image.copy())
 
         for compType in bikeComponentTypes:
-            bikeComponentType['Name'] = compType
+            bikeComponentType['Name'] = compType.strip()
             bikeComponent['Type'] = bikeComponentType.copy()
             bikeComponent['Name'] = self.get_bike_element(
-                response, bikeComponentType.get('Name'))
+                response, bikeComponentType.get('Name')
+            ).strip()
+            bikeComponent['Year'] = bike['Year']
             # We Add that component to the list
             #  of installed component on that bike
             bikeComponents.append(bikeComponent.copy())
@@ -73,18 +90,18 @@ class BikepediaSpider(scrapy.Spider):
         bikeComponentType['Name'] = 'Frame'
         bikeComponent['Type'] = bikeComponentType.copy()
         bikeComponent['Name'] = self.get_frame_element(
-            response, 'Frame Construction')
+            response, 'Frame Construction').strip()
         bikeComponent['Description'] = self.get_frame_element(
-            response, 'Frame Tubing Material')
+            response, 'Frame Tubing Material').strip()
         bikeComponents.append(bikeComponent.copy())
 
         # Fork
         bikeComponentType['Name'] = 'Front Fork'
         bikeComponent['Type'] = bikeComponentType.copy()
         bikeComponent['Name'] = self.get_frame_element(
-            response, 'Fork Brand & Model')
+            response, 'Fork Brand & Model').strip()
         bikeComponent['Description'] = self.get_frame_element(
-            response, 'Fork Material')
+            response, 'Fork Material').strip()
         bikeComponents.append(bikeComponent.copy())
         # TODO : Wheels Rear & Front
         bike['Components'] = bikeComponents

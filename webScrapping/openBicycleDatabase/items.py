@@ -17,6 +17,7 @@ class BikeItem(Item):
     Components = Field()
     Description = Field()
     Brand = Field()
+    Images = Field()
 
 
 class BrandItem(Item):

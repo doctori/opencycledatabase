@@ -1,5 +1,6 @@
 <md-sidenav md-is-locked-open="true" class="md-whiteframe-z2">
 	<md-list>
+		<md-subheader class="md-no-sticky">Bikes</md-subheader>
 		<md-list-item ng-repeat="bike in bikeCtrl.bikes">
 			<md-button ng-click="bikeCtrl.selectBike(bike)" ng-class="{'selected' : bike === bikeCtrl.selected}">
 			{{bike.Name}}|{{bike.Brand.Name}}

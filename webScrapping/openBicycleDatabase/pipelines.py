@@ -16,7 +16,8 @@ from scrapy.exceptions import DropItem
 _encoder = ScrapyJSONEncoder()
 
 logger = logging.getLogger(__name__)
-
+backendHost = '127.0.0.1'
+backendPort = '8080'
 
 class OpenbicycledatabasePipeline(object):
 
@@ -71,22 +72,42 @@ class ComponentPipeline(object):
 
     def process_item(self, item, spider):
         if type(item).__name__ == 'ComponentItem':
+            item = self.save_component(item)
+            return item
+        elif type(item).__name__ == 'BikeItem':
+            # Save the component before saving the bike
+            # (GORM seems to behave better that way)
+            if 'Brand' in item:
+                item['Brand'] = self.save_brand(item['Brand'])
+            for i, component in enumerate(item['Components']):
+                item['Components'][i] = self.save_component(component)
+
             resp = requests.post(
-                url='http://127.0.0.1:8080/components',
+                url='http://{0}:{1}/bikes'.format(backendHost, backendPort),
                 data=_encoder.encode(item))
             if resp.status_code != 200:
-                print("ERROR {0}".format(resp))
-                return item
+                raise DropItem("Could not Save the Bike")
+
             else:
                 print('Created component. ID: {0}'.format(resp.json()["ID"]))
                 return item
         else:
-            resp = requests.post(
-                url='http://127.0.0.1:8080/bikes',
-                data=_encoder.encode(item))
-            if resp.status_code != 200:
-                print("ERROR {0}".format(resp))
-                return item
-            else:
-                print('Created component. ID: {0}'.format(resp.json()["ID"]))
-                return item
+            raise DropItem("Item Unkown")
+
+    def save_component(self, component):
+        if 'Brand' in component:
+            component['Brand'] = self.save_brand(component['Brand'])
+        resp = requests.post(
+            url='http://{0}:{1}/components'.format(backendHost, backendPort),
+            data=_encoder.encode(component))
+        if resp.status_code != 200:
+            raise DropItem("Could not save the component")
+        return resp.json()
+
+    def save_brand(self, brand):
+        resp = requests.post(
+            url='http://{0}:{1}/brands'.format(backendHost, backendPort),
+            data=_encoder.encode(brand))
+        if resp.status_code != 200:
+            raise DropItem("Could not save the component")
+        return resp.json()

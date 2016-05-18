@@ -54,7 +54,7 @@ func extractBrandFromComponent(brand *models.Brand, component *models.Component)
 	index := strings.Index(component.Name, brand.Name)
 	if index != -1 {
 		component.Name = strings.Replace(component.Name, brand.Name, "", 1)
-		if len(component.Name) > 4 {
+		if len(component.Name) > 4 && len(brand.Name) > 4 {
 			component.Name = strings.TrimSpace(component.Name)
 			component.Brand = *brand
 			component.Save()

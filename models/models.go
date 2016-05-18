@@ -16,7 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
+	//"reflect"
 	"strconv"
 	"strings"
 	//"github.com/satori/go.uuid"
@@ -84,7 +84,7 @@ type Bike struct {
 	BrandID           int `json:"-"`
 	Year              string
 	Description       string
-	Image             int
+	Images            []Image     `gorm:"many2many:bike_images;"`
 	Components        []Component `gorm:"many2many:bike_components;"`
 	SupportedStandard []Standard  `sql:"-"`
 	PutNotSupported
@@ -150,9 +150,11 @@ func init() {
 	}
 	log.SetOutput(logFile)
 	DB, err = connectDB(config.DB)
+
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
 	DB.LogMode(true)
+	DB.SetLogger(log.New(logFile, "GORM :", log.Ldate|log.Ltime|log.Lshortfile))
 
 	DB.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
 	DB.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year, brand_id")
@@ -194,6 +196,18 @@ func (Brand) Get(values url.Values, id int) (int, interface{}) {
 	return 200, brand
 }
 
+func (b *Brand) isNotNull() bool {
+	return b.Name != ""
+}
+
+func (b *Brand) isEqual(c *Brand) bool {
+	return (b.Name == c.Name &&
+		b.Description == c.Description &&
+		b.CreationYear == c.CreationYear &&
+		b.EndYear == c.EndYear &&
+		b.Country == c.Country)
+
+}
 func (Brand) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
 	var brand Brand
@@ -220,49 +234,52 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 	return 200, brand
 }
 
-// Returns True if the left Brand Equals the Right Brand
-func (lb *Brand) Equals(rb *Brand) bool {
-	if lb.Name == rb.Name && lb.Description == rb.Description && lb.ID == rb.ID {
-		return true
-	} else {
-		return false
-	}
-}
 func (b *Brand) Save() {
-	// if b has no ID
-	if DB.NewRecord(b) {
-		oldb := new(Brand)
-		// Let's find if it exists
-		DB.Where("name = ?", b.Name).First(oldb)
-		if oldb.ID == 0 && oldb.Name == "" {
-			log.Println("Recording the New Brand")
-			DB.Create(b)
+	if b.isNotNull() {
+		// if b has no ID
+		if DB.NewRecord(b) {
+			oldb := new(Brand)
+			// Let's find if it exists
+			DB.Where("name = ?", b.Name).First(oldb)
+			if oldb.ID == 0 && oldb.Name == "" {
+				log.Println("Recording the New Brand")
+				DB.Create(b)
+			} else {
+				log.Println("Updating The Existing  Brand")
+				if !b.isEqual(oldb) {
+					DB.Model(oldb).Updates(b)
+					b = oldb
+					log.Printf("Saving Brand %#v\n", b)
+				}
+			}
 		} else {
-			log.Println("Updating The Existing  Brand")
-			/*DB.Model(oldb).Updates(b)
-			b = oldb*/
-			DB.Model(b).Updates(oldb)
-			log.Printf("Saving Brand %#v\n", b)
+			log.Printf("Updating Brand %#v\n", b)
+			DB.Save(b)
 		}
+		log.Printf("Brand %#v has been SAVED\n", b)
 	} else {
-		log.Printf("Updating Brand %#v\n", b)
-		DB.Save(b)
+		log.Printf("Brand %#v is nil and will not be saved\n", b)
+		b = nil
 	}
-	log.Printf("Brand %#v has been SAVED\n", b)
 }
 
+func (ct *ComponentType) isEqual(ct2 *ComponentType) bool {
+	return (ct.Name == ct2.Name)
+}
 func (ct *ComponentType) Save() {
 	if DB.NewRecord(ct) {
 		oldct := new(ComponentType)
-		DB.Where("name = ?", oldct.Name).First(&oldct)
-		if oldct.Name == "" {
+		DB.Where("name = ?", oldct.Name).First(oldct)
+		if oldct.Name == "" && oldct.ID == 0 {
 			log.Println("Recording the New Component type")
 			DB.Create(ct)
 		} else {
 			log.Println("Updating The Existing Component Type")
-			DB.Model(&oldct).Updates(ct)
-			ct = oldct
-			log.Printf("Saving Component type %#v", *ct)
+			if !ct.isEqual(oldct) {
+				DB.Model(oldct).Updates(ct)
+				ct = oldct
+				log.Printf("Saving Component type %#v", *ct)
+			}
 		}
 	} else {
 		DB.Save(ct)
@@ -276,44 +293,48 @@ func (b *Bike) Save() {
 		oldb := new(Bike)
 		b.Brand.Save()
 		log.Printf(" >>>>>>BRAND IS : %#v\n", b.Brand)
+		// Update component and images
+		for i := range b.Components {
+			err := b.Components[i].Save()
+			if err != nil {
+				log.Printf("Could not save : %v\n", b.Components[i])
+			} else {
+				log.Printf("Saved : %v\n", b.Components[i])
+			}
+		}
+		for i := range b.Images {
+			b.Images[i].Save()
+		}
+
 		log.Printf("Looking For : bike WHERE name = %v AND brand_id = %v AND year = %v", b.Name, b.Brand.ID, b.Year)
-		DB.Preload("Brand").Where("name = ? AND brand_id = ? AND year = ?", b.Name, b.Brand.ID, b.Year).First(oldb)
+		DB.Preload("Brand").Preload("Components").Preload("Images").Where("name = ? AND brand_id = ? AND year = ?", b.Name, b.Brand.ID, b.Year).First(oldb)
 		log.Println(oldb)
-		if oldb.Name == "" {
+		if oldb.Name == "" && oldb.ID == 0 {
 			log.Println("==========================================================================================")
 			log.Println("Creating the record")
 			log.Printf("%#v", b)
 			log.Println("==========================================================================================")
-			for i := range b.Components {
-				b.Components[i].Save()
-			}
 			// We skip association since it can't say if an association already exists ...
-			DB.Set("gorm:save_associations", false).Create(&b)
+			// Doesn't seems to effective ...
+			DB.Set("gorm:save_associations", false).Create(b)
 			// We update our just created object in order to add it's associations ...
 			DB.Save(b)
 		} else {
 			log.Println("Updating the record")
-			for i := range b.Components {
-
-				err := b.Components[i].Save()
-				if err != nil {
-					log.Printf("Could not save : %v\n", b.Components[i])
-				} else {
-					log.Printf("Saved : %v\n", b.Components[i])
-				}
-			}
 			// Reflect our bikes in order to loop throught its properties
-			oldbR := reflect.ValueOf(oldb).Elem()
-			bR := reflect.ValueOf(b).Elem()
-			for i := 0; i < bR.NumField(); i++ {
-				// We retrieve the current element from our new Bike
-				currElem := bR.Field(i).Interface()
-				// If empty we put the old values
-				if (currElem == nil) || (currElem == 0 || (currElem == "") || (currElem == false)) {
-					bR.Field(i).Set(reflect.Value(oldbR.Field(i)))
-				}
-			}
-			DB.Save(b)
+			//oldbR := reflect.ValueOf(oldb).Elem()
+			//bR := reflect.ValueOf(b).Elem()
+			// for i := 0; i < bR.NumField(); i++ {
+			// 	// We retrieve the current element from our new Bike
+			// 	currElem := bR.Field(i).Interface()
+			// 	// If empty we put the old values
+			// 	if (currElem == nil) || (currElem == 0 || (currElem == "") || (currElem == false)) {
+			// 		bR.Field(i).Set(reflect.Value(oldbR.Field(i)))
+			// 	}
+			// }
+			DB.Model(oldb).Updates(b)
+			b = oldb
+			// DB.Save(b)
 		}
 	} else {
 		b.Brand.Save()
@@ -565,7 +586,19 @@ func (Component) getCompatible(s Standard) []Component {
 	return compatibleComponents
 }
 
+func (c *Component) isNull() bool {
+	if c.Name == "" {
+		return true
+	} else {
+		return false
+	}
+}
+
 func (c *Component) Save() error {
+	if c.isNull() {
+		c = nil
+		return DB.Error
+	}
 	// the component has no ID
 	if DB.NewRecord(c) {
 		oldc := new(Component)
@@ -618,7 +651,8 @@ func (c *Component) Save() error {
 			c.Brand.Save()
 			log.Printf(" >>>>>>>>>>>>> The Component Brand %#v Has been Saved", c.Brand)
 			c.Type.Save()
-			DB.Model(&oldc).Updates(c)
+			DB.Model(oldc).Updates(c)
+			c = oldc
 		}
 	} else {
 		// Maybe Save nested object independantly ?
@@ -719,7 +753,7 @@ func (img *Image) Save() {
 			DB.Create(img)
 		} else {
 			log.Println("Updating The Image Record")
-			DB.Model(oldi).Updates(*img)
+			DB.Model(oldi).Updates(img)
 			img = oldi
 		}
 	} else {
