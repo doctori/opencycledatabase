@@ -248,7 +248,7 @@ func (b *Brand) Save() {
 				log.Println("Updating The Existing  Brand")
 				if !b.isEqual(oldb) {
 					DB.Model(oldb).Updates(b)
-					b = oldb
+					*b = *oldb
 					log.Printf("Saving Brand %#v\n", b)
 				}
 			}
@@ -277,7 +277,7 @@ func (ct *ComponentType) Save() {
 			log.Println("Updating The Existing Component Type")
 			if !ct.isEqual(oldct) {
 				DB.Model(oldct).Updates(ct)
-				ct = oldct
+				*ct = *oldct
 				log.Printf("Saving Component type %#v", *ct)
 			}
 		}
@@ -333,7 +333,7 @@ func (b *Bike) Save() {
 			// 	}
 			// }
 			DB.Model(oldb).Updates(b)
-			b = oldb
+			*b = *oldb
 			// DB.Save(b)
 		}
 	} else {
@@ -508,7 +508,7 @@ func (s *Standard) Save() []error {
 		} else {
 			log.Println("Updating The Image Record")
 			err = DB.Model(&olds).Updates(s).GetErrors()
-			s = olds
+			*s = *olds
 			log.Printf("Saved Standard %#v\n", s)
 		}
 	} else {
@@ -652,7 +652,7 @@ func (c *Component) Save() error {
 			log.Printf(" >>>>>>>>>>>>> The Component Brand %#v Has been Saved", c.Brand)
 			c.Type.Save()
 			DB.Model(oldc).Updates(c)
-			c = oldc
+			*c = *oldc
 		}
 	} else {
 		// Maybe Save nested object independantly ?
@@ -754,7 +754,7 @@ func (img *Image) Save() {
 		} else {
 			log.Println("Updating The Image Record")
 			DB.Model(oldi).Updates(img)
-			img = oldi
+			*img = *oldi
 		}
 	} else {
 		log.Printf("Saving Image %#v\n", *img)
