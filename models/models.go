@@ -402,7 +402,6 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 		if id == 0 {
 			return 500, "FUCK"
 		}
-		log.Printf("%#v", body)
 		err := DB.Preload("Brand").Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 		if err {
 			return 404, "Bike not found"
@@ -443,7 +442,6 @@ func (Bike) getCompatibleComponents(bike Bike) []Component {
 
 func (Standard) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
-	fmt.Printf("Received args : \n\t %+v\n", values)
 	decoder := json.NewDecoder(body)
 	var standard Standard
 	err := decoder.Decode(&standard)
@@ -459,7 +457,6 @@ func (Standard) Post(values url.Values, request *http.Request, id int, adj strin
 }
 
 func (Standard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
-	fmt.Printf("Received args : \n\t %+v\n", values)
 	decoder := json.NewDecoder(body)
 	var standard Standard
 	err := decoder.Decode(&standard)
@@ -519,7 +516,6 @@ func (s *Standard) Save() []error {
 
 func (Component) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
-	fmt.Printf("Received args : \n\t %+v\n", body)
 	decoder := json.NewDecoder(body)
 	var component Component
 	err := decoder.Decode(&component)
@@ -626,7 +622,6 @@ func (c *Component) Save() error {
 			log.Printf("Looking for : name = %v AND brand = %v AND type = %v", c.Name, c.Brand.Name, c.Type.Name, c.Year)
 			DB.Preload("Standards").Preload("Type", "name = ?", c.Type.Name).Preload("Brand", "name = ?", c.Brand.Name).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		}
-		log.Println(oldc)
 		if oldc.Name == "" {
 			log.Println("Creating the Component !")
 			DB.Create(c)
@@ -757,8 +752,8 @@ func (img *Image) Save() {
 			*img = *oldi
 		}
 	} else {
-		log.Printf("Saving Image %#v\n", *img)
+		//log.Printf("Saving Image %#v\n", *img)
 		DB.Save(img)
 	}
-	log.Printf("Saved Image %#v\n", *img)
+	//log.Printf("Saved Image %#v\n", *img)
 }
