@@ -18,6 +18,7 @@ class BikeItem(Item):
     Description = Field()
     Brand = Field()
     Images = Field()
+    Source = Field()
 
 
 class BrandItem(Item):
@@ -34,6 +35,7 @@ class ImageItem(Item):
     Name = Field()
     ID   = Field()
     URL  = Field()
+    Source = Field()
 
 
 class ComponentItem(Item):
@@ -45,3 +47,4 @@ class ComponentItem(Item):
     Year = Field()
     Standard = Field()
     Images = Field()
+    Source = Field()

@@ -38,7 +38,10 @@
     function selectBike ( bike ) {
       console.log(" BIKE SELECTED");
       console.log(bike)
-      self.selected = angular.isNumber(bike) ? self.bikes[bike] : bike;
+      bike = angular.isNumber(bike) ? self.bikes[bike] : bike;
+      Bike.get({id:bike.ID},function(bike){
+        self.selected = bike;
+      });
     }
    /**
    * Hide or Show the 'left' sideNav area

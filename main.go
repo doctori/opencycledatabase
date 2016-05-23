@@ -1,12 +1,24 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/doctori/OpenBicycleDatabase/models"
 )
 
-func main() {
+var debug bool
 
+func init() {
+	flag.BoolVar(&debug, "debug", false, "Debug Mode")
+	flag.BoolVar(&debug, "d", false, "Debug Mode")
+
+}
+func main() {
+	flag.Parse()
+	if debug {
+		fmt.Println("DEBUG MODE")
+		models.DebugMode()
+	}
 	api := new(API)
 	bike := new(models.Bike)
 	component := new(models.Component)

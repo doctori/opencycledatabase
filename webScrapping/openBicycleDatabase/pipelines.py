@@ -19,16 +19,6 @@ logger = logging.getLogger(__name__)
 backendHost = '127.0.0.1'
 backendPort = '8080'
 
-class OpenbicycledatabasePipeline(object):
-
-    def __init__(self):
-        self.file = open('items.jl', 'wb')
-
-    def process_item(self, item, spider):
-        line = _encoder.encode(item) + "\n"
-        self.file.write(line)
-        return item
-
 
 class ImagePipeline(ImagesPipeline):
     """docstring for ImagePipeline"""
@@ -38,22 +28,34 @@ class ImagePipeline(ImagesPipeline):
             yield scrapy.Request(imageUrl['URL'])
 
     def item_completed(self, results, item, info):
-        image_paths = [x['path'] for ok, x in results if ok]
+        image_items = [x for ok, x in results if ok]
         images = []
         image = ImageItem()
-        for image_path in image_paths:
-            image['Name'] = basename(image_path)
-            logger.info("uploading {0}".format(image_path))
+        for image_item in image_items:
+            image['Name'] = basename(image_item['path'])
+            image['Source'] = image_item['url']
+            logger.info("uploading {0}".format(image['Name']))
             file = {
                 'file': (
-                    # image['Name'],
-                    # Should retrieve the configuration Key
-                    open('/tmp/' + image_path, 'rb')
+                    image['Name'],
+                    open('/tmp/' + image_item['path'], 'rb'),
+                    'image/jpeg',
+                    {
+                        'Source': image_item['url']
+                    }
                 )
+            }
+            #file = {
+            #    'file': open('/tmp/' + image_item['path'], 'rb')
+            #}
+            data = {
+                "IMGSource": image_item['url']
             }
             result = requests.post(
                 'http://127.0.0.1:8080/images',
-                files=file)
+                files=file,
+                data=data
+            )
             if result.status_code != 200:
                 raise DropItem("Could Not Upload the Images")
             print result.status_code

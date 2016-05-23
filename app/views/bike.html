@@ -11,10 +11,10 @@
 </md-sidenav>
 <!-- Container #4 -->
 <md-content flex id="content">
-	<h1>PROUT</h1>
-	<h2>{{bikeCtrl.selected.Name}}</h2>
+	<h1>{{bikeCtrl.selected.Name}}</h1>
+	<h2>{{bikeCtrl.selected.Brand.Name }}</h2>
 	<p>{{bikeCtrl.selected.Description}}</p>
-	<p>{{bikeCtrl.selected.Brand.Name }}</p>
+	<img src="http://192.168.1.15:8080/images/{{bikeCtrl.selected.Images[0].ID}}"/>
 	<md-list>
 		<md-list-item ng-repeat="component in bikeCtrl.selected.Components">
 			{{component.Type.Name}} : {{component.Name}} by {{component.Brand.Name}}

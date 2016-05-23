@@ -87,6 +87,7 @@ type Bike struct {
 	Images            []Image     `gorm:"many2many:bike_images;"`
 	Components        []Component `gorm:"many2many:bike_components;"`
 	SupportedStandard []Standard  `sql:"-"`
+	Source            string
 	PutNotSupported
 }
 type Component struct {
@@ -101,6 +102,7 @@ type Component struct {
 	Standards   []Standard `gorm:"many2many:component_standards"`
 	Images      []Image    `gorm:"many2many:component_images"`
 	Year        string
+	Source      string
 	PutNotSupported
 	DeleteNotSupported
 }
@@ -112,6 +114,7 @@ type Image struct {
 	ContentType   string
 	ContentLength int64
 	Content       []byte `sql:"-"`
+	Source        string
 	PutNotSupported
 	DeleteNotSupported
 }
@@ -150,20 +153,24 @@ func init() {
 	}
 	log.SetOutput(logFile)
 	DB, err = connectDB(config.DB)
-
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
-	DB.LogMode(true)
 	DB.SetLogger(log.New(logFile, "GORM :", log.Ldate|log.Ltime|log.Lshortfile))
-
+	InitDB()
+}
+func InitDB() {
 	DB.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
 	DB.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year, brand_id")
 	DB.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year, brand_id")
 	DB.Model(&Standard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
 	DB.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
 	DB.AutoMigrate(&Bike{}, &Component{}, &Standard{}, &Image{}, &Brand{}, &ComponentType{})
-	checkErr(err, "Create tables failed")
-
+}
+func DebugMode() {
+	DB.LogMode(true)
+	DB.DropTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
+	DB.DropTable("bike_images", "bike_components", "component_standards", "component_images", "component_types")
+	InitDB()
 }
 func connectDB(config DBConfig) (db *gorm.DB, err error) {
 	log.Printf("Connecting to %s", config.Host)
@@ -373,7 +380,7 @@ func (Bike) Get(values url.Values, id int) (int, interface{}) {
 		return 200, GetAllBikes(page, per_page)
 	}
 	var bike Bike
-	err := DB.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
+	err := DB.Preload("Components").Preload("Images").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 	if err {
 		return 404, "Bike not found"
 	}
@@ -712,22 +719,51 @@ func (Image) Post(values url.Values, request *http.Request, id int, adj string) 
 	if strings.HasPrefix(mediaType, "multipart/") {
 		log.Println("YOU ARE POSTING AN IMAGE")
 		multipartReader := multipart.NewReader(request.Body, params["boundary"])
-		// Should Build buffer and Write it at the end (loop thour the nextpart !)
-		partReader, err := multipartReader.NextPart()
-		fileName := partReader.FileName()
-		filePath := uploadFolder + fileName
-		file, err := os.Create(filePath)
-		if err != nil {
+		// Should Build buffer and Write it at the end (loop for the nextpart !)
+		fileSource := ""
+		fileName := ""
+		filePath := ""
+		for {
+			partReader, err := multipartReader.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+			fileName = partReader.FileName()
+			if fileName == "" {
+				log.Printf("This is the Source Parth\n")
+				fileSourceArr, _ := ioutil.ReadAll(partReader)
+				fileSource = string(fileSourceArr)
+			} else {
+				filePath = uploadFolder + fileName
+				file, err := os.Create(filePath)
+				if err != nil {
+					log.Println(err)
+					return 500, err
+				}
+
+				if _, err := io.Copy(file, partReader); err != nil {
+					log.Fatal(err)
+					return 500, err
+				}
+			}
+		}
+
+		//form, err := multipartReader.ReadForm(512)
+
+		/*if err != nil {
+			log.Println("Error Durung ReadForm")
 			log.Println(err)
-			return 500, err
-		}
-		checkErr(err, "Could Not Get the Next Part")
-		if _, err := io.Copy(file, partReader); err != nil {
-			log.Fatal(err)
-			return 500, err
-		}
+		} else {
+			if len(form.Value["IMGSource"]) > 0 {
+				fileSource = form.Value["IMGSource"][0]
+			}
+		}*/
+
 		// Let's record this image and return it to our client
-		img = Image{Name: fileName, Path: filePath}
+		img = Image{Name: fileName, Path: filePath, Source: fileSource}
 		img.Save()
 		log.Printf("Posted : %#v", img)
 		return 200, img
