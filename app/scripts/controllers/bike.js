@@ -12,7 +12,9 @@
     var self = this;
     self.selected     = null;
     self.bikes        = [ ];
-
+    $scope.itemsPerPage = 30;
+    $scope.currentPage = 0;
+    $scope.total = 9999;
     Bike.query(function (bikes){
         self.bikes = [].concat(bikes)
         self.select = bikes[0];
@@ -21,6 +23,30 @@
     self.selectBike = selectBike;
     self.toggleList = toggleUsersList;
 
+    self.prevPage = function(){
+      if($scope.currentPage > 0){
+        $scope.currentPage--;
+      }
+    }
+    self.nextPage = function(){
+      if($scope.currentPage < self.pageCount() - 1) {
+        $scope.currentPage++;
+      }
+    }
+    self.prevPageDisabled = function() {
+      return $scope.currentPage === 0 ? "disabled" : "";
+    };
+    self.nextPageDisabled = function() {
+      return $scope.currentPage === self.pageCount() - 1 ? "disabled" : "";
+    };
+    self.pageCount = function() {
+      return Math.ceil($scope.total/$scope.itemsPerPage);
+    };
+    $scope.$watch("currentPage", function(newValue,oldValue){
+      Bike.getRange({page:newValue,per_page:$scope.itemsPerPage},function(bikes){
+        self.bikes = [].concat(bikes)
+      });
+    })
     self.remove = function(index,bike){
       console.log(index);
       console.log(bike);

@@ -364,7 +364,7 @@ func GetAllBikes(page string, per_page string) interface{} {
 	}
 	var bikes []Bike
 	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
-	DB.Preload("Components").Preload("Brand").Preload("Components.Type").Preload("Components.Brand").Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
+	DB.Preload("Components").Preload("Brand").Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
 	return bikes
 }
 
@@ -380,7 +380,7 @@ func (Bike) Get(values url.Values, id int) (int, interface{}) {
 		return 200, GetAllBikes(page, per_page)
 	}
 	var bike Bike
-	err := DB.Preload("Components").Preload("Images").Preload("Components.Standards").First(&bike, id).RecordNotFound()
+	err := DB.Preload("Components").Preload("Components.Brand").Preload("Components.Type").Preload("Brand").Preload("Images").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 	if err {
 		return 404, "Bike not found"
 	}

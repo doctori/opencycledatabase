@@ -1,18 +1,22 @@
 <md-sidenav md-is-locked-open="true" class="md-whiteframe-z2">
 	<md-list>
 		<md-subheader class="md-no-sticky">Bikes</md-subheader>
+		<md-button class="md-raised md-cornered" ng-click="bikeCtrl.prevPage()"><<</md-button>
+		{{currentPage+1}}
+		<md-button class="md-raised md-cornered" ng-click="bikeCtrl.nextPage()">>></md-button>
 		<md-list-item ng-repeat="bike in bikeCtrl.bikes">
 			<md-button ng-click="bikeCtrl.selectBike(bike)" ng-class="{'selected' : bike === bikeCtrl.selected}">
 			{{bike.Name}}|{{bike.Brand.Name}}
 			</md-button>
 
 		</md-list-item>
+
 	</md-list>
 </md-sidenav>
 <!-- Container #4 -->
 <md-content flex id="content">
 	<h1>{{bikeCtrl.selected.Name}}</h1>
-	<h2>{{bikeCtrl.selected.Brand.Name }}</h2>
+	<h2>{{bikeCtrl.selected.Brand.Name }} - {{bikeCtrl.selected.Year}}</h2>
 	<p>{{bikeCtrl.selected.Description}}</p>
 	<img src="http://192.168.1.15:8080/images/{{bikeCtrl.selected.Images[0].ID}}"/>
 	<md-list>
