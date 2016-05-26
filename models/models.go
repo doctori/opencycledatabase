@@ -247,7 +247,7 @@ func (b *Brand) Save() {
 		if DB.NewRecord(b) {
 			oldb := new(Brand)
 			// Let's find if it exists
-			DB.Where("name = ?", b.Name).First(oldb)
+			DB.Where("name = ?", b.Name).First(&oldb)
 			if oldb.ID == 0 && oldb.Name == "" {
 				log.Println("Recording the New Brand")
 				DB.Create(b)
@@ -352,7 +352,7 @@ func (b *Bike) Save() {
 	}
 }
 
-func GetAllBikes(page string, per_page string) interface{} {
+func GetAllBikes(page string, per_page string, search_string string) interface{} {
 	ipage, err := strconv.Atoi(page)
 	if err != nil {
 		ipage = 0
@@ -364,22 +364,31 @@ func GetAllBikes(page string, per_page string) interface{} {
 	}
 	var bikes []Bike
 	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
+	if search_string != "" {
+		s := []string{"%", search_string, "%"}
+		search_string = strings.Join(s, "")
+		DB.Preload("Components").Preload("Brand").Order("name").Where("name LIKE ?", search_string).Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
+		return bikes
+	}
 	DB.Preload("Components").Preload("Brand").Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
 	return bikes
+
 }
 
 func (Bike) Get(values url.Values, id int) (int, interface{}) {
 	page := values.Get("page")
 	per_page := values.Get("per_page")
+	search_string := values.Get("search_string")
 	/*if values.Get("name") == "" {
 		return 200, GetAllBikes()
 	}*/
 	// Let Display All that We Have
 	// Someday Pagination will be there
 	if id == 0 {
-		return 200, GetAllBikes(page, per_page)
+		return 200, GetAllBikes(page, per_page, search_string)
 	}
 	var bike Bike
+
 	err := DB.Preload("Components").Preload("Components.Brand").Preload("Components.Type").Preload("Brand").Preload("Images").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 	if err {
 		return 404, "Bike not found"

@@ -13,6 +13,7 @@
     self.selected     = null;
     self.bikes        = [ ];
     $scope.itemsPerPage = 30;
+    $scope.searchString = "";
     $scope.currentPage = 0;
     $scope.total = 9999;
     Bike.query(function (bikes){
@@ -43,9 +44,16 @@
       return Math.ceil($scope.total/$scope.itemsPerPage);
     };
     $scope.$watch("currentPage", function(newValue,oldValue){
-      Bike.getRange({page:newValue,per_page:$scope.itemsPerPage},function(bikes){
+      Bike.getRange({page:newValue,per_page:$scope.itemsPerPage,search_string:$scope.searchString},function(bikes){
         self.bikes = [].concat(bikes)
       });
+    })
+    $scope.$watch("searchString",function(newValue,oldValue){
+      if(newValue != ""){
+        Bike.getRange({page:$scope.currentPage,per_page:$scope.itemsPerPage,search_string:newValue},function(bikes){
+          self.bikes = [].concat(bikes)
+        });
+      }
     })
     self.remove = function(index,bike){
       console.log(index);
