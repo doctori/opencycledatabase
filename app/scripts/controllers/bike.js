@@ -18,7 +18,7 @@
     $scope.total = 9999;
     Bike.query(function (bikes){
         self.bikes = [].concat(bikes)
-        self.select = bikes[0];
+        self.selected = bikes[0];
       });
       
     self.selectBike = selectBike;
@@ -61,8 +61,8 @@
       bike.$remove(function(){
         self.bikes = Bike.query();
       });
-      
     };
+
 
 
    /**
@@ -83,12 +83,13 @@
     function toggleUsersList() {
       $mdSidenav('left').toggle();
     }
+
   }
  
 
 angular.module('openBicycleDatabaseApp')
   .controller('BikeListCtrl',['Bike','$scope','$mdSidenav','$mdBottomSheet',bikeListCtrl ])
-  .controller('BikeDetailCtrl', function ($scope, $routeParams,Bike) {
+ /* .controller('BikeDetailCtrl', function ($scope, $routeParams,Bike) {
     Bike.get({id:$routeParams.bikeID},function(bike){
       console.log(bike);
       $scope.bike = bike;
@@ -188,3 +189,4 @@ angular.module('openBicycleDatabaseApp')
       Bike.save(bike);
     };
   }]);
+  */

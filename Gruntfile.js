@@ -33,11 +33,11 @@ module.exports = function (grunt) {
     yeoman: appConfig,
     run: {
       goBuild: {
-        exec: 'go build *.go',
+        exec: 'go install ',
         failOnError: true
       },
     	goServe: {
-    		cmd: './api',
+    		cmd: 'OpenBicycleDatabase',
     		options: {
     			wait: false,
           failOnError: true

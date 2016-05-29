@@ -1,24 +1,32 @@
-<div class="row">
-	<div class="col-md-1"></div>
-	<div class="col-md-9">
-		<ul class="list-group">
-			<li class="list-group-item" ng-repeat="component in components" >
-				<div class="row">
-					<div class="col-md-4">
-						<a class="text-center" ng-href="#/component/{{component.ID}}">
-							<h3> {{component.Name}}</h3>
-						</a>
-					</div>
-					<div class="col-md-6" >
-					Name : {{component.Name}} || Brand : {{component.Brand.Name}} <br/> Description : {{component.Description}}
-					</div>
-					<div class="col-md-1">
-					<button ng-click='remove($index,bike)' type="button" class="btn btn-danger">Remove</button>
-					</div>
-				</div>
-			</li>
-		</ul>
-	</div>
+
+<md-sidenav class="md-sidenav-right md-whiteframe-z2" md-component-id="right">
+	<md-input-container md-theme="input" flex>
+      <label>&nbsp;</label>
+      <input ng-model="searchString" placeholder="search">
+	</md-input-container>
+	<md-list>
+	  <md-subheader class="md-no-sticky">Components</md-subheader>
+	  <md-button class="md-raised md-cornered" ng-click="componentCtrl.prevPage()"><<</md-button>
+	  {{currentPage+1}}
+	  <md-button class="md-raised md-cornered" ng-click="componentCtrl.nextPage()">>></md-button>
+	  
+	  <md-list-item ng-repeat="component in componentCtrl.components">
+	  <md-button ng-click="componentCtrl.selectComponent(component)" ng-class="{'selected' : component === componentCtrl.selected}">
+	  {{component.Name}}|{{component.Brand.Name}}|{{component.Year}}
+	  </md-button>
+
+	  </md-list-item>
+
+	</md-list>
+</md-sidenav>
+
+<md-content flex id="content">
+	<h1>{{componentCtrl.selected.Name}}</h1>
+	<h2>{{componentCtrl.selected.Brand.Name }} - {{componentCtrl.selected.Year}}</h2>
+	<p>{{componentCtrl.selected.Description}}</p>
+	<img src="http://192.168.1.15:8080/images/{{componentCtrl.selected.Images[0].ID}}"/>
+	
+</md-content>
 	<div class="col-md-2">
 	<a href="#/new-component" role="button" class="btn btn-primary">Add New Component !</a>
 	</div>

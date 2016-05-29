@@ -1,19 +1,21 @@
-<md-sidenav md-is-locked-open="true" class="md-whiteframe-z2">
-	<md-input-container md-theme="input" flex>
-            <label>&nbsp;</label>
-            <input ng-model="searchString" placeholder="search">
-          </md-input-container>
-	<md-list>
-		<md-subheader class="md-no-sticky">Bikes</md-subheader>
-		<md-button class="md-raised md-cornered" ng-click="bikeCtrl.prevPage()"><<</md-button>
-		{{currentPage+1}}
-		<md-button class="md-raised md-cornered" ng-click="bikeCtrl.nextPage()">>></md-button>
-		<md-list-item ng-repeat="bike in bikeCtrl.bikes">
-			<md-button ng-click="bikeCtrl.selectBike(bike)" ng-class="{'selected' : bike === bikeCtrl.selected}">
-			{{bike.Name}}|{{bike.Brand.Name}}
-			</md-button>
 
-		</md-list-item>
+<md-sidenav class="md-sidenav-right md-whiteframe-z2" md-component-id="right">
+	<md-input-container md-theme="input" flex>
+      <label>&nbsp;</label>
+      <input ng-model="searchString" placeholder="search">
+	</md-input-container>
+	<md-list>
+	  <md-subheader class="md-no-sticky">Bikes</md-subheader>
+	  <md-button class="md-raised md-cornered" ng-click="bikeCtrl.prevPage()"><<</md-button>
+	  {{currentPage+1}}
+	  <md-button class="md-raised md-cornered" ng-click="bikeCtrl.nextPage()">>></md-button>
+	  
+	  <md-list-item ng-repeat="bike in bikeCtrl.bikes">
+	  <md-button ng-click="bikeCtrl.selectBike(bike)" ng-class="{'selected' : bike === bikeCtrl.selected}">
+	  {{bike.Name}}|{{bike.Brand.Name}}|{{bike.Year}}
+	  </md-button>
+
+	  </md-list-item>
 
 	</md-list>
 </md-sidenav>
@@ -28,5 +30,5 @@
 			{{component.Type.Name}} : {{component.Name}} by {{component.Brand.Name}}
 		</md-list-item>
 	</md-list>
-	
+
 </md-content>

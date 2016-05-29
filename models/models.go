@@ -156,11 +156,13 @@ func init() {
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
 	DB.SetLogger(log.New(logFile, "GORM :", log.Ldate|log.Ltime|log.Lshortfile))
+	DB.LogMode(true)
 	InitDB()
 }
 func InitDB() {
 	DB.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &Standard{}, &Component{}, &Bike{})
 	DB.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year, brand_id")
+	DB.Model(&Brand{}).AddUniqueIndex("brand_uniqueness", "name")
 	DB.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year, brand_id")
 	DB.Model(&Standard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
 	DB.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
@@ -253,11 +255,11 @@ func (b *Brand) Save() {
 				DB.Create(b)
 			} else {
 				log.Println("Updating The Existing  Brand")
-				if !b.isEqual(oldb) {
-					DB.Model(oldb).Updates(b)
-					*b = *oldb
-					log.Printf("Saving Brand %#v\n", b)
-				}
+				//if !b.isEqual(oldb) {
+				DB.Model(oldb).Updates(b)
+				*b = *oldb
+				log.Printf("Saving Brand %#v\n", b)
+				//}
 			}
 		} else {
 			log.Printf("Updating Brand %#v\n", b)
@@ -367,6 +369,7 @@ func GetAllBikes(page string, per_page string, search_string string) interface{}
 	if search_string != "" {
 		s := []string{"%", search_string, "%"}
 		search_string = strings.Join(s, "")
+		log.Printf("Looking for [%s]", search_string)
 		DB.Preload("Components").Preload("Brand").Order("name").Where("name LIKE ?", search_string).Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
 		return bikes
 	}
@@ -551,20 +554,17 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 func (Component) Get(values url.Values, id int) (int, interface{}) {
 	page := values.Get("page")
 	per_page := values.Get("per_page")
-	if values.Get("name") == "" {
-		c := new(Component)
-		return 200, c.getAll(page, per_page)
+	if id == 0 {
+		return 200, getAllComponents(page, per_page)
 	}
-
-	log.Println(values.Get("name"))
 	var c Component
-	err := DB.Preload("Standards").Preload("Type").Preload("Brand").Find(&c, "name= ? ", values.Get("name")).RecordNotFound()
+	err := DB.Preload("Standards").Preload("Type").Preload("Brand").First(&c, id).RecordNotFound()
 	if err {
 		return 404, "Component not found"
 	}
 	return 200, c
 }
-func (Component) getAll(page string, per_page string) []Component {
+func getAllComponents(page string, per_page string) []Component {
 	ipage, err := strconv.Atoi(page)
 	if err != nil {
 		ipage = 0
@@ -585,9 +585,8 @@ func (Component) getAll(page string, per_page string) []Component {
 func (Component) getCompatible(s Standard) []Component {
 	var compatibleComponents []Component
 	// Crado Way
-	c := new(Component)
 	// SRSLY ?
-	components := c.getAll("0", "30")
+	components := getAllComponents("0", "30")
 	for _, component := range components {
 		for _, standard := range component.Standards {
 			if standard == s {
@@ -667,9 +666,7 @@ func (c *Component) Save() error {
 		}
 	} else {
 		// Maybe Save nested object independantly ?
-		c.Type.Save()
-		c.Brand.Save()
-		DB.Save(c)
+		DB.Save(&c)
 	}
 	return DB.Error
 }

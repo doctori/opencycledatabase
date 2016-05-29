@@ -23,12 +23,33 @@
     <![endif]-->
 
     <!-- Add your site or application content here -->
-    <md-toolbar layout="row" >
-      <h1>OpenBicycleDatabase</h1>
-    </md-toolbar>
-    
-      <div ng-view flex layout="row"></div>
-
+    <div ng-controller="MainCtrl">
+      <md-toolbar layout="row" >
+        <h1>OpenBicycleDatabase</h1>
+        
+      <md-button layout-align="right" ng-click="toggleBikeList()" aria-label="menu" class="md-info">
+        <md-icon md-menu-align-target class="material-icons">menu</md-icon>
+        </md-button>
+      </md-toolbar>
+      <div flex layout="row">
+        <md-sidenav md-is-locked-open="true" class="md-whiteframe-z2">
+          <md-list>
+            <md-subheader class="md-no-sticky">Bikes</md-subheader>
+            <md-list-item class="md-3-line">
+              <div class="md-list-item-text">
+                <a ng-href="#/bikes"><h2>Bikes</h2></a>
+              </div>
+            </md-list-item>
+            <md-list-item class="md-3-line">
+              <div class="md-list-item-text">
+              <a ng-href="#/components"><h2>Components</h2></a>
+              </div>
+            </md-list-item>
+          </md-list>
+        </md-sidenav>
+        <div ng-view ></div>
+      </div>
+    </div>
 
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID 
      <script>

@@ -8,6 +8,7 @@
  *
  * Main module of the application.
  */
+
 angular
   .module('openBicycleDatabaseApp', [
     'bikeService',
@@ -31,6 +32,11 @@ angular
         controller: 'BikeListCtrl',
         controllerAs: 'bikeCtrl'
       })
+      .when('/bikes', {
+        templateUrl: 'views/bike.html',
+        controller: 'BikeListCtrl',
+        controllerAs: 'bikeCtrl'
+      })
       .when('/bike/:bikeID',{
         templateUrl: 'views/bike-detail.html',
         controller: 'BikeDetailCtrl',
@@ -49,7 +55,7 @@ angular
       .when('/components', {
         templateUrl: 'views/components.html',
         controller: 'ComponentListCtrl',
-        controllerAs: 'component'
+        controllerAs: 'componentCtrl'
       })
 
       .otherwise({
