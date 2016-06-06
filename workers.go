@@ -27,7 +27,6 @@ func brandToComponent() {
 		go componentMatchBrands(w, componentsChannel, &brands, done)
 	}
 	for i := 0; i < totalComponents; i = i + offset {
-		fmt.Printf("Counting To : %d\n", i)
 		//time.Sleep(time.Duration(1) * time.Second)
 		models.DB.Limit(offset).Offset(i).Find(&components)
 		//Basic string contained test ... to be improved ? surely
