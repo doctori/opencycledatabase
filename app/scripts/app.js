@@ -18,7 +18,7 @@ angular
     'ngResource',
     'ngRoute',
     'ngSanitize',
-    'ngTouch',
+ //   'ngTouch',
     'gettext',
     'xeditable',
     'ngFileUpload'
@@ -27,7 +27,14 @@ angular
     gettextCatalog.setCurrentLanguage('fr_FR');
     gettextCatalog.debug = true;
   })
-  .config(function ($routeProvider) {
+  .config(function ($routeProvider,$locationProvider,$provide) {
+    $provide.decorator('$sniffer', function($delegate) {
+      $delegate.history = false;
+      return $delegate;
+    });
+    $locationProvider
+      .html5Mode(true)
+      .hashPrefix('!');
     $routeProvider
       .when('/', {
         templateUrl: 'views/bike.html',

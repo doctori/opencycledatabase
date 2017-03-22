@@ -34,7 +34,7 @@ angular.module('openBicycleDatabaseApp')
     };
     $scope.getImgURL = function(bike){
       if(bike.Image){
-        var bikeURL= 'http://192.168.198.130:8080/image/'+bike.Image  
+        var bikeURL= 'http://127.0.0.1:8080/image/'+bike.Image  
       }else{
         var bikeURL= "http://monculsurlacomode.com/"
       }
@@ -87,7 +87,7 @@ angular.module('openBicycleDatabaseApp')
                 var file = files[i];
                 if (!file.$error) {
                   Upload.upload({
-                      url: 'http://192.168.198.130:8080/image',
+                      url: 'http://127.0.0.1:8080/image',
                       data: {
                         username: $scope.username,
                         file: file  

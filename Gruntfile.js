@@ -20,6 +20,7 @@ module.exports = function (grunt) {
   });
   grunt.loadNpmTasks('grunt-run');
   grunt.loadNpmTasks('grunt-angular-gettext');
+  grunt.loadNpmTasks('grunt-contrib-compass');
   // Configurable paths for the application
   var appConfig = {
     app: require('./bower.json').appPath || 'app',

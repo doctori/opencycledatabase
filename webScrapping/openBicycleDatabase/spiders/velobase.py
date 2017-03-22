@@ -13,7 +13,7 @@ class VelobaseSpider(scrapy.Spider):
     start_urls = ['http://velobase.com/ListComponents.aspx?ClearFilter=true']
 
     def __init__(self):
-        self.driver = webdriver.Firefox()
+        self.driver = webdriver.Chrome()
 
     def __del__(self):
         self.driver.stop()
@@ -65,7 +65,7 @@ class VelobaseSpider(scrapy.Spider):
             '//td[@id="ctl00_ContentPlaceHolder1_GenInfo"]/table/tr/td[contains(text(),"Country:")]/following-sibling::td/text()').extract()[-1]
         component['Description'] = response.xpath(
             '//td[@id="ctl00_ContentPlaceHolder1_AddInfoCell"]/text()').extract()[-1]
-        component['Year'] = 0
+        component['Year'] = '0'
         component['Brand'] = dict(brand)
         component['Type'] = dict(comptype)
 

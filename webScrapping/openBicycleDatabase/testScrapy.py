@@ -1,7 +1,8 @@
+# -*- coding: utf-8 -*-
 import scrapy
 
 
-class BikePediaScapper(scrapy.Spider):
+class BikePediaScrapper(scrapy.Spider):
     name = 'bikepedia'
     start_urls = ['http://www.bikepedia.com/QuickBike']
 
@@ -93,6 +94,6 @@ class BikePediaScapper(scrapy.Spider):
     def get_bike_element(self, response, elementToFind):
         element =  response.xpath('//table[@id="ctl00_MainContent_CBSDetailsView3"]/tr/td[@class="FieldHeader" and contains(text(),"{0}")]/following-sibling::td/text()'.format(elementToFind)).extract()
         if isinstance(element, list) & len(element) > 0:
-            return element[0]
+            return element[0].encode("utf-8")
         else:
-            return element
+            return element.encode("utf-8")

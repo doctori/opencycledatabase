@@ -15,8 +15,8 @@ class OpenbicycledatabasePipeline(object):
         self.file = open('items.jl', 'wb')
 
     def process_item(self, item, spider):
-        line = _encoder.encode(item) + "\n"
-        self.file.write(line)
+        #line = _encoder.encode(item) + "\n"
+        #self.file.write(line)
         return item
 
 

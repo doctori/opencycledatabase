@@ -50,15 +50,15 @@ class BikepediaSpider(scrapy.Spider):
 
         bike['Name'] = response.xpath(
             '//span[@id="ctl00_MainContent_TitleOfBike_modelLabel2"]/text()'
-        ).extract()[0].encode('utf8')
+        ).extract()[0]
 
         bikeBrand['Name'] = response.xpath(
             '//span[@id="ctl00_MainContent_TitleOfBike_brandLabel2"]/text()'
-        ).extract()[0].encode('utf8')
+        ).extract()[0]
         bike['Brand'] = bikeBrand
         bike['Year'] = response.xpath(
             '//span[@id="ctl00_MainContent_TitleOfBike_yearLabel2"]/text()'
-        ).extract()[0].encode('utf8')
+        ).extract()[0]
 
         for compType in bikeComponentTypes:
             bikeComponentType['Name'] = compType
@@ -93,13 +93,13 @@ class BikepediaSpider(scrapy.Spider):
     def get_bike_element(self, response, elementToFind):
         element =  response.xpath('//table[@id="ctl00_MainContent_CBSDetailsView3"]/tr/td[@class="FieldHeader" and contains(text(),"{0}")]/following-sibling::td/text()'.format(elementToFind)).extract()
         if isinstance(element, list) & len(element) > 0:
-            return element[0].encode('utf8')
+            return element[0]
         else:
             return ""
 
     def get_frame_element(self, response, elementToFind):
-    	element = response.xpath('//table[@id="ctl00_MainContent_CBSDetailsView2"]/tr/td[@class="FieldHeader" and contains(text(),"{0}")]/following-sibling::td/text()'.format(elementToFind)).extract()
+        element = response.xpath('//table[@id="ctl00_MainContent_CBSDetailsView2"]/tr/td[@class="FieldHeader" and contains(text(),"{0}")]/following-sibling::td/text()'.format(elementToFind)).extract()
         if isinstance(element, list) & len(element) > 0:
-            return element[0].encode('utf8')
+            return element[0]
         else:
             return ""
