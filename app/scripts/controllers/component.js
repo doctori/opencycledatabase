@@ -10,5 +10,13 @@
 angular.module('openBicycleDatabaseApp')
   .controller('ComponentListCtrl', function ($scope,Component) {
     $scope.components = Component.query({page:0,per_page:100});
+    $scope.search = function($filter) {
+    	$scope.components = Component.query(
+    	{
+    		page: 0,
+    		per_page: 100,
+    		search: $filter
+    	})
+    };
   });
  

@@ -6,6 +6,13 @@ angular.module('componentService', ['ngResource']).factory('Component', function
 		// put:{method:'PUT', isArray:false},
 		// post:{method:'POST', isArray:false},
 		// update:{method: 'POST', isArray:false},
+		search:{
+			method: 'GET',
+			isArray:true,
+			params: {
+				search: '@searchTerm'
+			}
+		}
 
 	});
 }); 

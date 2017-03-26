@@ -56,6 +56,11 @@ angular
         controller: 'AboutCtrl',
         controllerAs: 'about'
       })
+      .when('/component/:componentID', {
+        templateUrl: 'views/component-detail.html',
+        controller: 'ComponentDetailCtrl',
+        controllerAs: 'component'
+      })
       .when('/components', {
         templateUrl: 'views/components.html',
         controller: 'ComponentListCtrl',
