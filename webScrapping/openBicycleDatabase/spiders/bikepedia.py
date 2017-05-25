@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re 
 import scrapy
 from openBicycleDatabase.items import BikeItem, BrandItem, ComponentItem, ComponentType
 
@@ -59,6 +60,7 @@ class BikepediaSpider(scrapy.Spider):
         bike['Year'] = response.xpath(
             '//span[@id="ctl00_MainContent_TitleOfBike_yearLabel2"]/text()'
         ).extract()[0]
+        bike['image_urls'] = self.get_bike_images(response)
 
         for compType in bikeComponentTypes:
             bikeComponentType['Name'] = compType
@@ -103,3 +105,22 @@ class BikepediaSpider(scrapy.Spider):
             return element[0]
         else:
             return ""
+
+    def get_bike_images(self, response):
+        element = response.xpath('//*/img[@class="thumbImg" and contains(@src,"filename")]/@src').extract()
+        urls = []
+        prog = re.compile('^(http://1mg.me/\?).*&(filename=.*\.jpg).*$')
+        for source in element:
+            m = prog.match(source)
+            if m : 
+                url = m.group(1)+m.group(2)+"&f=bp"
+                print("==============================")
+                print(url)
+                print("==============================")
+                urls.append(url)
+            else:
+                print("="*60)
+                print("IMG not found in : {0}".format(source))
+                print("="*60)
+        return urls
+        

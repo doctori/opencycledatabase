@@ -16,6 +16,8 @@ class BikeItem(Item):
     # Will be an array on Compoennt Item
     Components = Field()
     Description = Field()
+    image_urls = Field()
+    images = Field()
     Brand = Field()
 
 
