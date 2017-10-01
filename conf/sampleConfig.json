@@ -1,0 +1,9 @@
+{
+	"db":{
+		"host":"localhost",
+		"username":"obd",
+		"password":"obd",
+		"port":5432,
+		"dbname":"odb"
+	}
+}
