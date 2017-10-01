@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/nfnt/resize"
 	"image"
 	"image/jpeg"
 	_ "image/png"
@@ -18,6 +17,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/nfnt/resize"
 	//"github.com/satori/go.uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -382,6 +383,7 @@ func (Bike) Get(values url.Values, id int) (int, interface{}) {
 	return 200, bike
 }
 
+// Delete the bike on DB given an bike ID -int-
 func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 	if id != 0 {
 		log.Print("Will Delete the ID : ")
@@ -391,10 +393,9 @@ func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 			return 404, "Id Not Found"
 		}
 		return 200, "plop"
-	} else {
-		log.Println(id)
-		return 404, "NOT FOUND"
 	}
+	log.Println(id)
+	return 404, "NOT FOUND"
 }
 
 func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
