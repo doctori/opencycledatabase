@@ -8,7 +8,6 @@ import (
 	"image/jpeg"
 	_ "image/png"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime"
 	"mime/multipart"
@@ -80,6 +79,7 @@ type Image struct {
 	PutNotSupported
 	DeleteNotSupported
 }
+
 type Standard struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
@@ -398,6 +398,7 @@ func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 	return 404, "NOT FOUND"
 }
 
+// Handle Post request from http
 func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
 	var bike Bike
@@ -453,9 +454,9 @@ func (Standard) Post(values url.Values, request *http.Request, id int, adj strin
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.save()
+	err = standard.save()
 	if err != nil {
-		return 500, "Could Not Save the Standard"
+		return 500, fmt.Sprintf("Could Not Save the Standard : \n\t %s", err.Error())
 	}
 	return 200, standard
 }
@@ -469,25 +470,46 @@ func (Standard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.save()
+	err = standard.save()
 	if err != nil {
-		return 500, "Could Not Save the Standard"
+		return 500, fmt.Sprint("Could Not Save the Standard : \n\t%s", err.Error())
 	}
 	return 200, standard
 }
-func (Standard) Get(values url.Values, id int) (int, interface{}) {
-	filename := "db/standard_" + values.Get("name") + ".json"
-	jsonBlob, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return 404, "404 Standard Not Found"
-	}
-	var s Standard
-	if json.Unmarshal(jsonBlob, &s) != nil {
-		return 500, ""
-	}
 
-	return 200, s
+func GetAllStandards(page string, per_page string) (standards []Standard) {
+	ipage, err := strconv.Atoi(page)
+	if err != nil {
+		ipage = 0
+	}
+	// Retrieve the per_page arg, if not a number default to 30
+	iper_page, err := strconv.Atoi(per_page)
+	if err != nil {
+		iper_page = PER_PAGE
+	}
+	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
+	db.Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&standards)
+	return
 }
+func (Standard) Get(values url.Values, id int) (int, interface{}) {
+	page := values.Get("page")
+	per_page := values.Get("per_page")
+	/*if values.Get("name") == "" {
+		return 200, GetAllBikes()
+	}*/
+	// Let Display All that We Have
+	// Someday Pagination will be there
+	if id == 0 {
+		return 200, GetAllStandards(page, per_page)
+	}
+	var standard Standard
+	err := db.First(&standard, id).RecordNotFound()
+	if err {
+		return 404, "Standard not found"
+	}
+	return 200, standard
+}
+
 func (Standard) Delete(values url.Values, id int) (int, interface{}) {
 	filename := "db/standard_" + values.Get("name") + ".json"
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
@@ -498,17 +520,38 @@ func (Standard) Delete(values url.Values, id int) (int, interface{}) {
 	}
 	return 200, ""
 }
-func (s Standard) save() (error, Standard) {
-	filename := "db/standard_" + s.Name + ".json"
-	//if (s.ID == ""){
-	//	s.ID = uuid.NewV4().String()
-	//}
-	jsonBlob, err := json.Marshal(s)
-	if err != nil {
-		return err, s
+func (s *Standard) save() (err error) {
+	// If we have a new record we create it
+	if db.NewRecord(&s) {
+		olds := new(Standard)
+		if db.Where("name = ? AND code = ?", s.Name, s.Code).First(&olds).RecordNotFound() {
+			log.Println("==========================================================================================")
+			log.Println("Creating the record")
+			log.Printf("%#v", s)
+			log.Println("==========================================================================================")
+
+			// We update our just created object in order to add it's associations ...
+			err = db.Save(s).Error
+			if err != nil {
+				return
+			}
+		} else {
+			log.Println("Updating the record")
+			log.Println(olds)
+			err = db.Model(olds).Updates(s).Error
+			if err != nil {
+				return
+			}
+			log.Println(olds)
+			*s = *olds
+		}
+	} else {
+		err = db.Save(&s).Error
+		if err != nil {
+			return
+		}
 	}
-	err = ioutil.WriteFile(filename, jsonBlob, 0600)
-	return err, s
+	return
 }
 
 func (Component) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
