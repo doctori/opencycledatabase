@@ -1,0 +1,6 @@
+[tmdb]
+ApiKey 		= "TMDB API KEY"
+URL	   		= "https://api.themoviedb.org/3/search/movie"
+movieURL 	= "https://api.themoviedb.org/3/movie"
+[omdb]
+URL	   		= "https://omdbapi.com/"

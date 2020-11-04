@@ -7,3 +7,4 @@
 *.jl
 openbicycledatabase
 *.exe
+conf/conf.toml

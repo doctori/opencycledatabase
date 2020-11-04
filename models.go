@@ -18,12 +18,20 @@ import (
 	"strings"
 
 	"github.com/nfnt/resize"
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 	//"github.com/satori/go.uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
+<<<<<<< Updated upstream
 const PER_PAGE int = 30
+=======
+const perPage int = 30
+>>>>>>> Stashed changes
 
 type ComponentType struct {
 	gorm.Model
@@ -153,7 +161,7 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 		decoder := json.NewDecoder(body)
 		err := decoder.Decode(&brand)
 		if err != nil {
-			panic(err)
+			log.Println(err)
 			return 500, "Internal Error"
 		}
 		log.Println(brand)
@@ -574,6 +582,7 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 }
 
 func (Component) Get(values url.Values, id int) (int, interface{}) {
+<<<<<<< Updated upstream
 
 	page, err := strconv.Atoi(values.Get("page"))
 	if err != nil {
@@ -598,10 +607,24 @@ func (Component) Get(values url.Values, id int) (int, interface{}) {
 		Find(&c, "name= ? ", values.Get("name")).
 		RecordNotFound()
 	if notFound {
+=======
+	page := values.Get("page")
+	per_page := values.Get("per_page")
+	if values.Get("name") == "" {
+		c := new(Component)
+		return 200, c.getAll(page, per_page)
+	}
+
+	log.Println(values.Get("name"))
+	var c Component
+	err := db.Preload("Standards").Preload("Type").Preload("Brand").Find(&c, "name= ? ", values.Get("name")).RecordNotFound()
+	if err {
+>>>>>>> Stashed changes
 		return 404, "Component not found"
 	}
 	return 200, c
 }
+<<<<<<< Updated upstream
 func (Component) search(page int, per_page int, filter string) (components []Component) {
 	filter = fmt.Sprintf("%%%s%%", filter)
 	db.Preload("Standards").
@@ -617,6 +640,22 @@ func (Component) getAll(page int, per_page int) (components []Component) {
 
 	//TODO : return LINKS Header with the next page and previous page
 	db.Preload("Standards").Preload("Type").Preload("Brand").Offset(page * per_page).Limit(per_page).Find(&components)
+=======
+func (Component) getAll(page string, per_page string) []Component {
+	ipage, err := strconv.Atoi(page)
+	if err != nil {
+		ipage = 0
+	}
+	// Retrieve the per_page arg, if not a number default to 30
+	iper_page, err := strconv.Atoi(per_page)
+	if err != nil {
+		iper_page = perPage
+	}
+
+	var components []Component
+	//TODO : return LINKS Header with the next page and previous page
+	db.Preload("Standards").Preload("Type").Preload("Brand").Offset(ipage * iper_page).Limit(iper_page).Find(&components)
+>>>>>>> Stashed changes
 	return components
 }
 
@@ -625,7 +664,11 @@ func (Component) getCompatible(s Standard) []Component {
 	var compatibleComponents []Component
 	// Crado Way
 	c := new(Component)
+<<<<<<< Updated upstream
 	components := c.getAll(0, 30)
+=======
+	components := c.getAll("0", "30")
+>>>>>>> Stashed changes
 	for _, component := range components {
 		for _, standard := range component.Standards {
 			if standard == s {
