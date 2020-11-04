@@ -153,7 +153,7 @@ func (api *API) requestHandler(resource Resource, resourceType string) http.Hand
 		// the index 0 of the splitted Path is "/"
 		// the index 1 is the resource type (can differ from the resourceType)
 		// the index 2 if exists is the resource id
-		// the index 3 if exiests is the adjective
+		// the index 3 if exists is the adjective
 		id := 0
 		adj := ""
 		pathLength := len(splittedPath)

@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/nfnt/resize"
 	"image"
 	"image/jpeg"
 	_ "image/png"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime"
 	"mime/multipart"
@@ -18,10 +16,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/nfnt/resize"
 	//"github.com/satori/go.uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
+
+const PER_PAGE int = 30
 
 type ComponentType struct {
 	gorm.Model
@@ -45,7 +47,7 @@ type Bike struct {
 	Name              string
 	Brand             Brand
 	BrandID           int `json:"-"`
-	Year              int
+	Year              string
 	Description       string
 	Image             int
 	Components        []Component `gorm:"many2many:bike_components;"`
@@ -62,7 +64,7 @@ type Component struct {
 	TypeID      int `json:"-"`
 	Description string
 	Standards   []Standard `gorm:"many2many:component_standards"`
-	Year        int
+	Year        string
 	PutNotSupported
 	DeleteNotSupported
 }
@@ -77,6 +79,7 @@ type Image struct {
 	PutNotSupported
 	DeleteNotSupported
 }
+
 type Standard struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
@@ -303,61 +306,74 @@ func (b Bike) save() {
 	// If we have a new record we create it
 	if db.NewRecord(b) {
 		oldb := new(Bike)
-		db.Preload("Components").Preload("Components.Standards").Where("name = ? AND brand = ? AND year = ?", b.Name, b.Brand, b.Year).First(&oldb)
+		b.Brand = b.Brand.save()
+		db.Preload("Components").Preload("Brand").Where("name = ? AND brand_id = ? AND year = ?", b.Name, b.Brand.ID, b.Year).First(&oldb)
 		log.Println(oldb)
 		if oldb.Name == "" {
+			log.Println("==========================================================================================")
 			log.Println("Creating the record")
-			db.Create(&b)
+			log.Printf("%#v", b)
+			log.Println("==========================================================================================")
+			for i, component := range b.Components {
+				_, component := component.save()
+
+				b.Components[i] = component
+			}
+			// We skip association since it can't say if an association already exists ...
+			db.Set("gorm:save_associations", false).Create(&b)
+			// We update our just created object in order to add it's associations ...
+			db.Save(&b)
 		} else {
 			log.Println("Updating the record")
 			for i, nc := range b.Components {
-				// Only check if we have no predefined ID
-				if nc.ID == 0 {
-					for _, c := range oldb.Components {
-						if c.Name == nc.Name && c.Type == nc.Type && c.Brand == nc.Brand && c.Year == nc.Year {
-							// We positively have the same component, let's give him it's ID
-							b.Components[i].ID = c.ID
-						}
-					}
-					// Let's check that for our Standard ...
-					for j, ns := range nc.Standards {
-						if ns.ID == 0 {
-							// Awfull
-							for _, c := range oldb.Components {
-								for _, s := range c.Standards {
-									if s.Name == ns.Name && s.Code == ns.Code && s.Type == ns.Type {
-										b.Components[i].Standards[j].ID = s.ID
-									}
-								}
-							}
-						}
-					}
+
+				err, nc := nc.save()
+				if err != nil {
+					log.Printf("Could not save : %v\n", nc)
+				} else {
+					log.Printf("Saved : %v\n", nc)
+					b.Components[i] = nc
 				}
 			}
 			db.Model(&oldb).Updates(&b)
 			b = *oldb
 		}
 	} else {
-		db.Save(b)
+		b.Brand = b.Brand.save()
+		for i, component := range b.Components {
+			_, component := component.save()
+			b.Components[i] = component
+		}
+		db.Save(&b)
 	}
 }
 
-func GetAllBikes() interface{} {
-
+func GetAllBikes(page string, per_page string) interface{} {
+	ipage, err := strconv.Atoi(page)
+	if err != nil {
+		ipage = 0
+	}
+	// Retrieve the per_page arg, if not a number default to 30
+	iper_page, err := strconv.Atoi(per_page)
+	if err != nil {
+		iper_page = PER_PAGE
+	}
 	var bikes []Bike
 	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
-	db.Find(&bikes)
+	db.Preload("Components").Preload("Brand").Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&bikes)
 	return bikes
 }
 
 func (Bike) Get(values url.Values, id int) (int, interface{}) {
+	page := values.Get("page")
+	per_page := values.Get("per_page")
 	/*if values.Get("name") == "" {
 		return 200, GetAllBikes()
 	}*/
 	// Let Display All that We Have
 	// Someday Pagination will be there
 	if id == 0 {
-		return 200, GetAllBikes()
+		return 200, GetAllBikes(page, per_page)
 	}
 	var bike Bike
 	err := db.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
@@ -367,6 +383,7 @@ func (Bike) Get(values url.Values, id int) (int, interface{}) {
 	return 200, bike
 }
 
+// Delete the bike on DB given an bike ID -int-
 func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 	if id != 0 {
 		log.Print("Will Delete the ID : ")
@@ -376,12 +393,12 @@ func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 			return 404, "Id Not Found"
 		}
 		return 200, "plop"
-	} else {
-		log.Println(id)
-		return 404, "NOT FOUND"
 	}
+	log.Println(id)
+	return 404, "NOT FOUND"
 }
 
+// Handle Post request from http
 func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
 	var bike Bike
@@ -390,7 +407,7 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 			return 500, "FUCK"
 		}
 		log.Printf("%#v", body)
-		err := db.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
+		err := db.Preload("Brand").Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
 		if err {
 			return 404, "Bike not found"
 		}
@@ -401,7 +418,13 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 			panic(err)
 			return 500, "Internal Error"
 		}
-		log.Println(bike)
+		// Clean the unName Components
+		components := bike.Components[:0]
+		for _, component := range bike.Components {
+			if component.Name != "" {
+				components = append(components, component)
+			}
+		}
 		bike.save()
 	}
 	return 200, bike
@@ -431,9 +454,9 @@ func (Standard) Post(values url.Values, request *http.Request, id int, adj strin
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.save()
+	err = standard.save()
 	if err != nil {
-		return 500, "Could Not Save the Standard"
+		return 500, fmt.Sprintf("Could Not Save the Standard : \n\t %s", err.Error())
 	}
 	return 200, standard
 }
@@ -447,25 +470,46 @@ func (Standard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
 		panic("shiit")
 	}
 	log.Println(standard)
-	err, standard = standard.save()
+	err = standard.save()
 	if err != nil {
-		return 500, "Could Not Save the Standard"
+		return 500, fmt.Sprint("Could Not Save the Standard : \n\t%s", err.Error())
 	}
 	return 200, standard
 }
-func (Standard) Get(values url.Values, id int) (int, interface{}) {
-	filename := "db/standard_" + values.Get("name") + ".json"
-	jsonBlob, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return 404, "404 Standard Not Found"
-	}
-	var s Standard
-	if json.Unmarshal(jsonBlob, &s) != nil {
-		return 500, ""
-	}
 
-	return 200, s
+func GetAllStandards(page string, per_page string) (standards []Standard) {
+	ipage, err := strconv.Atoi(page)
+	if err != nil {
+		ipage = 0
+	}
+	// Retrieve the per_page arg, if not a number default to 30
+	iper_page, err := strconv.Atoi(per_page)
+	if err != nil {
+		iper_page = PER_PAGE
+	}
+	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
+	db.Order("name").Offset(ipage * iper_page).Limit(iper_page).Find(&standards)
+	return
 }
+func (Standard) Get(values url.Values, id int) (int, interface{}) {
+	page := values.Get("page")
+	per_page := values.Get("per_page")
+	/*if values.Get("name") == "" {
+		return 200, GetAllBikes()
+	}*/
+	// Let Display All that We Have
+	// Someday Pagination will be there
+	if id == 0 {
+		return 200, GetAllStandards(page, per_page)
+	}
+	var standard Standard
+	err := db.First(&standard, id).RecordNotFound()
+	if err {
+		return 404, "Standard not found"
+	}
+	return 200, standard
+}
+
 func (Standard) Delete(values url.Values, id int) (int, interface{}) {
 	filename := "db/standard_" + values.Get("name") + ".json"
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
@@ -476,17 +520,38 @@ func (Standard) Delete(values url.Values, id int) (int, interface{}) {
 	}
 	return 200, ""
 }
-func (s Standard) save() (error, Standard) {
-	filename := "db/standard_" + s.Name + ".json"
-	//if (s.ID == ""){
-	//	s.ID = uuid.NewV4().String()
-	//}
-	jsonBlob, err := json.Marshal(s)
-	if err != nil {
-		return err, s
+func (s *Standard) save() (err error) {
+	// If we have a new record we create it
+	if db.NewRecord(&s) {
+		olds := new(Standard)
+		if db.Where("name = ? AND code = ?", s.Name, s.Code).First(&olds).RecordNotFound() {
+			log.Println("==========================================================================================")
+			log.Println("Creating the record")
+			log.Printf("%#v", s)
+			log.Println("==========================================================================================")
+
+			// We update our just created object in order to add it's associations ...
+			err = db.Save(s).Error
+			if err != nil {
+				return
+			}
+		} else {
+			log.Println("Updating the record")
+			log.Println(olds)
+			err = db.Model(olds).Updates(s).Error
+			if err != nil {
+				return
+			}
+			log.Println(olds)
+			*s = *olds
+		}
+	} else {
+		err = db.Save(&s).Error
+		if err != nil {
+			return
+		}
 	}
-	err = ioutil.WriteFile(filename, jsonBlob, 0600)
-	return err, s
+	return
 }
 
 func (Component) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
@@ -509,22 +574,49 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 }
 
 func (Component) Get(values url.Values, id int) (int, interface{}) {
-	if values.Get("name") == "" {
-		c := new(Component)
-		return 200, c.getAll()
+
+	page, err := strconv.Atoi(values.Get("page"))
+	if err != nil {
+		page = 0
+	}
+	// Retrieve the per_page arg, if not a number default to 30
+	per_page, err := strconv.Atoi(values.Get("per_page"))
+	if err != nil {
+		per_page = PER_PAGE
+	}
+	var c Component
+	if values.Get("name") == "" && values.Get("search") == "" {
+		return 200, c.getAll(page, per_page)
+	} else if values.Get("search") != "" {
+		return 200, c.search(page, per_page, values.Get("search"))
 	}
 
 	log.Println(values.Get("name"))
-	var c Component
-	err := db.Preload("Standards").Find(&c, "name= ? ", values.Get("name")).RecordNotFound()
-	if err {
+	notFound := db.Preload("Standards").
+		Preload("Type").
+		Preload("Brand").
+		Find(&c, "name= ? ", values.Get("name")).
+		RecordNotFound()
+	if notFound {
 		return 404, "Component not found"
 	}
 	return 200, c
 }
-func (Component) getAll() []Component {
-	var components []Component
-	db.Preload("Standards").Find(&components)
+func (Component) search(page int, per_page int, filter string) (components []Component) {
+	filter = fmt.Sprintf("%%%s%%", filter)
+	db.Preload("Standards").
+		Preload("Type").
+		Preload("Brand").
+		Where("name LIKE ?", filter).
+		Find(&components).
+		Offset(page * per_page).
+		Limit(per_page)
+	return
+}
+func (Component) getAll(page int, per_page int) (components []Component) {
+
+	//TODO : return LINKS Header with the next page and previous page
+	db.Preload("Standards").Preload("Type").Preload("Brand").Offset(page * per_page).Limit(per_page).Find(&components)
 	return components
 }
 
@@ -533,7 +625,7 @@ func (Component) getCompatible(s Standard) []Component {
 	var compatibleComponents []Component
 	// Crado Way
 	c := new(Component)
-	components := c.getAll()
+	components := c.getAll(0, 30)
 	for _, component := range components {
 		for _, standard := range component.Standards {
 			if standard == s {
@@ -545,7 +637,6 @@ func (Component) getCompatible(s Standard) []Component {
 }
 
 func (c Component) save() (error, Component) {
-
 	if db.NewRecord(c) {
 		oldc := new(Component)
 		db.Where(c.Brand).First(&c.Brand)
@@ -586,7 +677,7 @@ func (c Component) save() (error, Component) {
 		// Maybe Save nested object independantly ?
 		c.Type = c.Type.save()
 		c.Brand = c.Brand.save()
-		db.Save(c)
+		db.Save(&c)
 	}
 	return db.Error, c
 }
