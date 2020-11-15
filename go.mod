@@ -1,4 +1,4 @@
-module github.com/doctori/openbicycledatabase
+module github.com/doctori/opencycledatabase
 
 go 1.14
 

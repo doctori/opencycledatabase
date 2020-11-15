@@ -1,4 +1,4 @@
-package main
+package data
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+
+	// import png support
 	_ "image/png"
 	"io"
 	"log"
@@ -20,7 +22,10 @@ import (
 	"github.com/nfnt/resize"
 	//"github.com/satori/go.uuid"
 	"github.com/jinzhu/gorm"
+	// import postgres dialects
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+
+	"github.com/doctori/opencycledatabase/internal/pkg/api"
 )
 
 const defaultPerPage int = 30
@@ -41,8 +46,8 @@ type Brand struct {
 	CreationYear int
 	EndYear      int
 	Country      string
-	PutNotSupported
-	DeleteNotSupported
+	api.PutNotSupported
+	api.DeleteNotSupported
 }
 
 // Bike contains the defintion of the bike and all its attached components
@@ -57,7 +62,7 @@ type Bike struct {
 	Image             int
 	Components        []Component `gorm:"many2many:bike_components;"`
 	SupportedStandard []standard  `sql:"-"`
-	PutNotSupported
+	api.PutNotSupported
 }
 
 // Component : Generic struct to regroup most common properties
@@ -73,8 +78,8 @@ type Component struct {
 	Standards   []standard `gorm:"many2many:component_standards"`
 	Images      []Image
 	Year        string
-	PutNotSupported
-	DeleteNotSupported
+	api.PutNotSupported
+	api.DeleteNotSupported
 }
 
 // ComponentInt : the standard COmponent interface that needs to complies to in order to be a component
@@ -96,8 +101,8 @@ type Image struct {
 	ContentType   string
 	ContentLength int64
 	Content       []byte `sql:"-"`
-	PutNotSupported
-	DeleteNotSupported
+	api.PutNotSupported
+	api.DeleteNotSupported
 }
 
 // StandardInt interface define all the method that a standard need to have to be a
@@ -143,37 +148,6 @@ type ThreadStandard struct {
 	ThreadPerInch float32
 	Diameter      float32
 	Orientation   string
-}
-
-var db = &gorm.DB{}
-
-func initDB(config Config) *gorm.DB {
-	connectionString := fmt.Sprintf(
-		"user=%s password='%s' host=%s dbname=%s",
-		config.DB.Username,
-		config.DB.Password,
-		config.DB.Host,
-		config.DB.DBname)
-	log.Printf("Connecting to %s", connectionString)
-	db, err := gorm.Open("postgres", connectionString)
-	checkErr(err, "Postgres Opening Failed")
-	// Debug Mode
-	db.LogMode(true)
-	db.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &BBStandard{}, &Component{}, &Bike{})
-	db.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year")
-	db.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year")
-	db.Model(&BBStandard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
-	db.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
-	db.AutoMigrate(&Bike{}, &Component{}, &BBStandard{}, &Image{}, &Brand{}, &ComponentType{})
-	checkErr(err, "Create tables failed")
-
-	return db
-}
-
-func checkErr(err error, msg string) {
-	if err != nil {
-		log.Panicln(msg, err)
-	}
 }
 
 // Get will return the asked Brand
