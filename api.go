@@ -12,54 +12,60 @@ import (
 	"strings"
 )
 
-const (
-	GET     = "GET"
-	POST    = "POST"
-	PUT     = "PUT"
-	DELETE  = "DELETE"
-	OPTIONS = "OPTIONS"
-)
-
+// Resource will define the generic API resource methods
 type Resource interface {
 	Get(values url.Values, id int) (int, interface{})
 	Post(values url.Values, request *http.Request, id int, adj string) (int, interface{})
 	Put(values url.Values, body io.ReadCloser) (int, interface{})
 	Delete(values url.Values, id int) (int, interface{})
 }
-type NonJsonResource interface {
+
+// NonJSONResource hold the files images and other objects
+type NonJSONResource interface {
 	Get(values url.Values, id int) (int, interface{})
 	Post(values url.Values, request *http.Request, id int, adj string) (int, interface{})
 	Put(values url.Values, body io.ReadCloser) (int, interface{})
 	Delete(values url.Values, id int) (int, interface{})
 }
-type NonJsonData interface {
+
+// NonJSONData represent any content that is not JSon, mostly images
+type NonJSONData interface {
 	GetContentType() string
 	GetContentLength() string
 	GetContent() []byte
 }
 type (
-	GetNotSupported    struct{}
-	PostNotSupported   struct{}
-	PutNotSupported    struct{}
+	// GetNotSupported default response when you cannot Get the resource
+	GetNotSupported struct{}
+	// PostNotSupported default response when you cannot Post the resource
+	PostNotSupported struct{}
+	//PutNotSupported default response when you cannot Get the resource
+	PutNotSupported struct{}
+	// DeleteNotSupported default response when you cannot Get the resource
 	DeleteNotSupported struct{}
 )
 
+// Get returns a 405
 func (GetNotSupported) Get(values url.Values, id int) (int, interface{}) {
 	return 405, ""
 }
 
+// Post returns a 405
 func (PostNotSupported) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	return 405, ""
 }
 
+// Put returns a 405
 func (PutNotSupported) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
 	return 405, ""
 }
 
+// Delete returns a 405
 func (DeleteNotSupported) Delete(values url.Values, id int) (int, interface{}) {
 	return 405, ""
 }
 
+// API is the generic "API" model
 type API struct{}
 
 func (api *API) splitPath(path string, resourceType string) (id int, adj string) {
@@ -81,6 +87,8 @@ func (api *API) splitPath(path string, resourceType string) (id int, adj string)
 	return id, adj
 
 }
+
+// Abort just return the status code
 func (api *API) Abort(rw http.ResponseWriter, statusCode int) {
 	rw.WriteHeader(statusCode)
 }
@@ -88,7 +96,7 @@ func (api *API) Abort(rw http.ResponseWriter, statusCode int) {
 /*
 * Method to handle Non Json Data (Basicaly Images)
  */
-func (api *API) nonJSONrequestHandler(resource NonJsonResource, resourceType string) http.HandlerFunc {
+func (api *API) nonJSONrequestHandler(resource NonJSONResource, resourceType string) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
 		var content []byte
 		var data interface{}
@@ -102,23 +110,23 @@ func (api *API) nonJSONrequestHandler(resource NonJsonResource, resourceType str
 		body := request.Body
 		fmt.Printf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
-		case "GET":
+		case http.MethodGet:
 			var response interface{}
 			code, response = resource.Get(values, id)
 			if code == 200 {
-				nonJSONResponse := response.(NonJsonData)
+				nonJSONResponse := response.(NonJSONData)
 				rw.Header().Set("Content-Type", nonJSONResponse.GetContentType())
 				//rw.Header().Set("Content-Length", nonJSONResponse.GetContentLength())
 				//rw.Header().Set("Accept-Ranges", "bytes")
 				content = nonJSONResponse.GetContent()
 			}
-		case "POST":
+		case http.MethodPost:
 			code, data = resource.Post(values, request, id, adj)
-		case "PUT":
+		case http.MethodPut:
 			code, data = resource.Put(values, body)
-		case "DELETE":
+		case http.MethodDelete:
 			code, data = resource.Delete(values, id)
-		case "OPTIONS":
+		case http.MethodOptions:
 			code = 200
 			data = nil
 		default:
@@ -167,15 +175,15 @@ func (api *API) requestHandler(resource Resource, resourceType string) http.Hand
 		body := request.Body
 		fmt.Printf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
-		case "GET":
+		case http.MethodGet:
 			code, data = resource.Get(values, id)
-		case "POST":
+		case http.MethodPost:
 			code, data = resource.Post(values, request, id, adj)
-		case "PUT":
+		case http.MethodPut:
 			code, data = resource.Put(values, body)
-		case "DELETE":
+		case http.MethodDelete:
 			code, data = resource.Delete(values, id)
-		case "OPTIONS":
+		case http.MethodOptions:
 			code = 200
 			data = nil
 		default:
@@ -193,6 +201,8 @@ func (api *API) requestHandler(resource Resource, resourceType string) http.Hand
 		rw.Write(content)
 	}
 }
+
+// AddResource add path to the http Handler
 func (api *API) AddResource(resource Resource, path string) {
 	// Retrieve the Type Name of the Resource (Bike, Component etc ...)
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
@@ -210,7 +220,8 @@ func (api *API) AddResource(resource Resource, path string) {
 
 }
 
-func (api *API) AddNonJSONResource(resource NonJsonResource, path string) {
+// AddNonJSONResource will add a non json Handler
+func (api *API) AddNonJSONResource(resource NonJSONResource, path string) {
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
 	subPath := ""
 	if path != "" {
@@ -225,6 +236,8 @@ func (api *API) AddNonJSONResource(resource NonJsonResource, path string) {
 	http.HandleFunc(subPath, api.nonJSONrequestHandler(resource, resourceType))
 
 }
+
+// Start starts the listener
 func (api *API) Start(inetaddr string, port int) {
 	portString := fmt.Sprintf("%s:%d", inetaddr, port)
 	log.Fatal(http.ListenAndServe(portString, nil))
