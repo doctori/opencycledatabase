@@ -10,22 +10,24 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // Resource will define the generic API resource methods
 type Resource interface {
-	Get(values url.Values, id int) (int, interface{})
-	Post(values url.Values, request *http.Request, id int, adj string) (int, interface{})
-	Put(values url.Values, body io.ReadCloser) (int, interface{})
-	Delete(values url.Values, id int) (int, interface{})
+	Get(db *gorm.DB, values url.Values, id int) (int, interface{})
+	Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{})
+	Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{})
+	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
 }
 
 // NonJSONResource hold the files images and other objects
 type NonJSONResource interface {
-	Get(values url.Values, id int) (int, interface{})
-	Post(values url.Values, request *http.Request, id int, adj string) (int, interface{})
-	Put(values url.Values, body io.ReadCloser) (int, interface{})
-	Delete(values url.Values, id int) (int, interface{})
+	Get(db *gorm.DB, values url.Values, id int) (int, interface{})
+	Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{})
+	Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{})
+	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
 }
 
 // NonJSONData represent any content that is not JSon, mostly images
@@ -33,36 +35,6 @@ type NonJSONData interface {
 	GetContentType() string
 	GetContentLength() string
 	GetContent() []byte
-}
-type (
-	// GetNotSupported default response when you cannot Get the resource
-	GetNotSupported struct{}
-	// PostNotSupported default response when you cannot Post the resource
-	PostNotSupported struct{}
-	//PutNotSupported default response when you cannot Get the resource
-	PutNotSupported struct{}
-	// DeleteNotSupported default response when you cannot Get the resource
-	DeleteNotSupported struct{}
-)
-
-// Get returns a 405
-func (GetNotSupported) Get(values url.Values, id int) (int, interface{}) {
-	return 405, ""
-}
-
-// Post returns a 405
-func (PostNotSupported) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
-	return 405, ""
-}
-
-// Put returns a 405
-func (PutNotSupported) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
-	return 405, ""
-}
-
-// Delete returns a 405
-func (DeleteNotSupported) Delete(values url.Values, id int) (int, interface{}) {
-	return 405, ""
 }
 
 // API is the generic "API" model
@@ -96,7 +68,7 @@ func (api *API) Abort(rw http.ResponseWriter, statusCode int) {
 /*
 * Method to handle Non Json Data (Basicaly Images)
  */
-func (api *API) nonJSONrequestHandler(resource NonJSONResource, resourceType string) http.HandlerFunc {
+func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, resourceType string) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
 		var content []byte
 		var data interface{}
@@ -112,7 +84,7 @@ func (api *API) nonJSONrequestHandler(resource NonJSONResource, resourceType str
 		switch method {
 		case http.MethodGet:
 			var response interface{}
-			code, response = resource.Get(values, id)
+			code, response = resource.Get(db, values, id)
 			if code == 200 {
 				nonJSONResponse := response.(NonJSONData)
 				rw.Header().Set("Content-Type", nonJSONResponse.GetContentType())
@@ -121,11 +93,11 @@ func (api *API) nonJSONrequestHandler(resource NonJSONResource, resourceType str
 				content = nonJSONResponse.GetContent()
 			}
 		case http.MethodPost:
-			code, data = resource.Post(values, request, id, adj)
+			code, data = resource.Post(db, values, request, id, adj)
 		case http.MethodPut:
-			code, data = resource.Put(values, body)
+			code, data = resource.Put(db, values, body)
 		case http.MethodDelete:
-			code, data = resource.Delete(values, id)
+			code, data = resource.Delete(db, values, id)
 		case http.MethodOptions:
 			code = 200
 			data = nil
@@ -147,7 +119,7 @@ func (api *API) nonJSONrequestHandler(resource NonJSONResource, resourceType str
 		rw.Write(content)
 	}
 }
-func (api *API) requestHandler(resource Resource, resourceType string) http.HandlerFunc {
+func (api *API) requestHandler(db *gorm.DB, resource Resource, resourceType string) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
 
 		var data interface{}
@@ -173,16 +145,16 @@ func (api *API) requestHandler(resource Resource, resourceType string) http.Hand
 		}
 
 		body := request.Body
-		fmt.Printf("Received: %s with args : \n\t %+v\n", method, values)
+		log.Printf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
 		case http.MethodGet:
-			code, data = resource.Get(values, id)
+			code, data = resource.Get(db, values, id)
 		case http.MethodPost:
-			code, data = resource.Post(values, request, id, adj)
+			code, data = resource.Post(db, values, request, id, adj)
 		case http.MethodPut:
-			code, data = resource.Put(values, body)
+			code, data = resource.Put(db, values, body)
 		case http.MethodDelete:
-			code, data = resource.Delete(values, id)
+			code, data = resource.Delete(db, values, id)
 		case http.MethodOptions:
 			code = 200
 			data = nil
@@ -203,7 +175,7 @@ func (api *API) requestHandler(resource Resource, resourceType string) http.Hand
 }
 
 // AddResource add path to the http Handler
-func (api *API) AddResource(resource Resource, path string) {
+func (api *API) AddResource(db *gorm.DB, resource Resource, path string) {
 	// Retrieve the Type Name of the Resource (Bike, Component etc ...)
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
 	subPath := ""
@@ -215,13 +187,13 @@ func (api *API) AddResource(resource Resource, path string) {
 
 	}
 	log.Printf("adding path %v", path)
-	http.HandleFunc(path, api.requestHandler(resource, resourceType))
-	http.HandleFunc(subPath, api.requestHandler(resource, resourceType))
+	http.HandleFunc(path, api.requestHandler(db, resource, resourceType))
+	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType))
 
 }
 
 // AddNonJSONResource will add a non json Handler
-func (api *API) AddNonJSONResource(resource NonJSONResource, path string) {
+func (api *API) AddNonJSONResource(db *gorm.DB, resource NonJSONResource, path string) {
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
 	subPath := ""
 	if path != "" {
@@ -232,8 +204,8 @@ func (api *API) AddNonJSONResource(resource NonJSONResource, path string) {
 
 	}
 	log.Printf("adding path %v", path)
-	http.HandleFunc(path, api.nonJSONrequestHandler(resource, resourceType))
-	http.HandleFunc(subPath, api.nonJSONrequestHandler(resource, resourceType))
+	http.HandleFunc(path, api.nonJSONrequestHandler(db, resource, resourceType))
+	http.HandleFunc(subPath, api.nonJSONrequestHandler(db, resource, resourceType))
 
 }
 

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jinzhu/gorm"
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
+	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
-
-var db = &gorm.DB{}
 
 // InitDB will initialise the database connection and the scheme
 func InitDB(config config.Config) *gorm.DB {
@@ -19,16 +19,11 @@ func InitDB(config config.Config) *gorm.DB {
 		config.DB.Host,
 		config.DB.DBname)
 	log.Printf("Connecting to %s", connectionString)
-	db, err := gorm.Open("postgres", connectionString)
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
-	db.LogMode(true)
-	db.CreateTable(&Image{}, &ComponentType{}, &Brand{}, &BBStandard{}, &Component{}, &Bike{})
-	db.Model(&Bike{}).AddUniqueIndex("bike_uniqueness", "name,  year")
-	db.Model(&Component{}).AddUniqueIndex("component_uniqueness", "name, year")
-	db.Model(&BBStandard{}).AddUniqueIndex("standard_uniqueness", "name, code, type")
-	db.Model(&Image{}).AddUniqueIndex("image_uniqueness", "name", "path")
-	db.AutoMigrate(&Bike{}, &Component{}, &BBStandard{}, &Image{}, &Brand{}, &ComponentType{})
+	db.Debug()
+	db.AutoMigrate(&Image{}, &ComponentType{}, &Brand{}, &standards.BBStandard{}, &Component{}, &Bike{})
 	checkErr(err, "Create tables failed")
 
 	return db

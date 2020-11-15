@@ -5,6 +5,6 @@
 /bower_components
 *.pyc
 *.jl
-openbicycledatabase
+opencycledatabase
 *.exe
-conf/conf.toml
+conf/mainConfig.json

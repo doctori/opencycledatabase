@@ -3,6 +3,7 @@ package data
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -19,13 +20,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
 	"github.com/nfnt/resize"
-	//"github.com/satori/go.uuid"
-	"github.com/jinzhu/gorm"
-	// import postgres dialects
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 
-	"github.com/doctori/opencycledatabase/internal/pkg/api"
+	//"github.com/satori/go.uuid"
+	"gorm.io/gorm"
 )
 
 const defaultPerPage int = 30
@@ -46,40 +45,40 @@ type Brand struct {
 	CreationYear int
 	EndYear      int
 	Country      string
-	api.PutNotSupported
-	api.DeleteNotSupported
+	PutNotSupported
+	DeleteNotSupported
 }
 
 // Bike contains the defintion of the bike and all its attached components
 type Bike struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
-	Name              string
+	Name              string `gorm:"uniqueIndex:bike_uniqueness"`
 	Brand             Brand
-	BrandID           int `json:"-"`
-	Year              string
+	BrandID           int    `json:"-" gorm:"uniqueIndex:bike_uniqueness"`
+	Year              string `gorm:"uniqueIndex:bike_uniqueness"`
 	Description       string
-	Image             int
-	Components        []Component `gorm:"many2many:bike_components;"`
-	SupportedStandard []standard  `sql:"-"`
-	api.PutNotSupported
+	Image             []Image              `gorm:"many2many:bike_images"`
+	Components        []Component          `gorm:"many2many:bike_components;"`
+	SupportedStandard []standards.Standard `gorm:"-"`
+	PutNotSupported
 }
 
 // Component : Generic struct to regroup most common properties
 type Component struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
 	gorm.Model
-	Name        string
+	Name        string `gorm:"uniqueIndex:component_uniqueness"`
 	Brand       Brand
-	BrandID     int `json:"-"`
+	BrandID     int `json:"-" gorm:"uniqueIndex:component_uniqueness"`
 	Type        ComponentType
 	TypeID      int `json:"-"`
 	Description string
-	Standards   []standard `gorm:"many2many:component_standards"`
-	Images      []Image
-	Year        string
-	api.PutNotSupported
-	api.DeleteNotSupported
+	Standards   []standards.Standard `gorm:"many2many:component_standards"`
+	Images      []Image              `gorm:"many2many:component_images"`
+	Year        string               `gorm:"uniqueIndex:component_uniqueness"`
+	PutNotSupported
+	DeleteNotSupported
 }
 
 // ComponentInt : the standard COmponent interface that needs to complies to in order to be a component
@@ -88,70 +87,25 @@ type ComponentInt interface {
 	GetBrand() Brand
 	GetType() ComponentType
 	GetDescription() string
-	GetStandards() []StandardInt
+	GetStandards() []standards.StandardInt
 	GetImages() []Image
 }
 
 // Image is the description and the pointer to the image
 type Image struct {
 	gorm.Model
-	Name          string
-	Path          string
+	Name          string `gorm:"uniqueIndex:image_uniqueness"`
+	Path          string `gorm:"uniqueIndex:image_uniqueness"`
 	Type          string
 	ContentType   string
 	ContentLength int64
 	Content       []byte `sql:"-"`
-	api.PutNotSupported
-	api.DeleteNotSupported
-}
-
-// StandardInt interface define all the method that a standard need to have to be a
-// real standard struct
-type StandardInt interface {
-	GetName() string
-	GetCountry() string
-	GetCode() string
-	GetType() string
-	Get() string
-}
-
-// standard define the generic common standard properties
-type standard struct {
-	// add basic ID/Created@/Updated@/Delete@ through Gorm
-	gorm.Model
-	Name        string
-	Country     string
-	Code        string
-	Type        string
-	Description string
-}
-
-// BBStandard will define the bottom bracket standard
-type BBStandard struct {
-	standard
-	// Thread definition (if needed)
-	Thread ThreadStandard
-	// IsThreaded : true if  it's a threaded bottom bracket
-	IsThreaded bool
-	// IsPressFit : true if it's a pressfit bottom bracket
-	// (can't be true with isThreaded)
-	IsPressFit bool
-	// the inside width of the shell in mm
-	ShellWidth float32
-	// External diameter in mm
-	ExternalWidth float32
-}
-
-// ThreadStandard defines the the standard of a thread used
-// todo : https://en.wikipedia.org/wiki/Screw_thread
-type ThreadStandard struct {
-	ThreadPerInch float32
-	Diameter      float32
-	Orientation   string
+	PutNotSupported
+	DeleteNotSupported
 }
 
 // Get will return the asked Brand
-func (Brand) Get(values url.Values, id int) (int, interface{}) {
+func (Brand) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 
 	if id == 0 {
 		var brands []Brand
@@ -160,15 +114,15 @@ func (Brand) Get(values url.Values, id int) (int, interface{}) {
 		return 200, brands
 	}
 	var brand Brand
-	err := db.First(&brand, id).RecordNotFound()
-	if err {
+	err := db.First(&brand, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return 404, "Brand not found"
 	}
 	return 200, brand
 }
 
 // Post will save the brand
-func (Brand) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (Brand) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
 	var brand Brand
 	if adj != "" {
@@ -176,8 +130,9 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 			return 500, "That Shouldn't have appended"
 		}
 
-		err := db.First(&brand, id).RecordNotFound()
-		if err {
+		err := db.First(&brand, id).Error
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 404, "Brand not found"
 		}
 	} else {
@@ -188,14 +143,14 @@ func (Brand) Post(values url.Values, request *http.Request, id int, adj string) 
 			return 500, "Internal Error"
 		}
 		log.Println(brand)
-		brand = brand.save()
+		brand = brand.save(db)
 	}
 
 	return 200, brand
 }
 
-func (b Brand) save() Brand {
-	if db.NewRecord(b) {
+func (b Brand) save(db *gorm.DB) Brand {
+	if b.ID == 0 {
 		oldb := new(Brand)
 		db.Where("name = ?", b.Name).First(&oldb)
 		if oldb.Name == "" {
@@ -214,8 +169,8 @@ func (b Brand) save() Brand {
 	return b
 }
 
-func (ct ComponentType) save() ComponentType {
-	if db.NewRecord(ct) {
+func (ct ComponentType) save(db *gorm.DB) ComponentType {
+	if ct.ID == 0 {
 		oldct := new(ComponentType)
 		db.Where("name = ?", oldct.Name).First(&oldct)
 		if oldct.Name == "" {
@@ -235,13 +190,13 @@ func (ct ComponentType) save() ComponentType {
 
 // Get will return the image (content type is image/jpeg)
 // TODO : make the content detection working
-func (Image) Get(values url.Values, id int) (int, interface{}) {
+func (Image) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 	var img Image
 	if id == 0 {
 		return 500, "Could not GET All Images"
 	}
-	recordNotFound := db.First(&img, id).RecordNotFound()
-	if recordNotFound {
+	err := db.First(&img, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return 404, "Image Not Found"
 	}
 	file, err := os.Open(img.Path)
@@ -284,7 +239,7 @@ func (i Image) getContent() []byte {
 }
 
 // Post saves the images to the "upload" directory (shouldn't it go to S3 ? )
-func (Image) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (Image) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	uploadFolder := "upload/"
 	mediaType, params, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
 	checkErr(err, "Could Not Determine the Content Type")
@@ -308,7 +263,7 @@ func (Image) Post(values url.Values, request *http.Request, id int, adj string) 
 		}
 		// Let's record this image and return it to our client
 		img = Image{Name: fileName, Path: filePath}
-		recordedImg := img.save()
+		recordedImg := img.save(db)
 		log.Printf("Posted : %#v", img)
 		return 200, recordedImg
 	}
@@ -316,8 +271,8 @@ func (Image) Post(values url.Values, request *http.Request, id int, adj string) 
 	return 200, img
 }
 
-func (i Image) save() Image {
-	if db.NewRecord(i) {
+func (i Image) save(db *gorm.DB) Image {
+	if i.ID == 0 {
 		oldi := new(Image)
 		db.Where("name = ? and path = ? ", i.Name, i.Path).First(&oldi)
 		if oldi.Name == "" {
@@ -336,11 +291,11 @@ func (i Image) save() Image {
 }
 
 // Should Return Errors !!
-func (b Bike) save() {
+func (b Bike) save(db *gorm.DB) {
 	// If we have a new record we create it
-	if db.NewRecord(b) {
+	if b.ID == 0 {
 		oldb := new(Bike)
-		b.Brand = b.Brand.save()
+		b.Brand = b.Brand.save(db)
 		db.Preload("Components").Preload("Brand").Where("name = ? AND brand_id = ? AND year = ?", b.Name, b.Brand.ID, b.Year).First(&oldb)
 		log.Println(oldb)
 		if oldb.Name == "" {
@@ -349,7 +304,7 @@ func (b Bike) save() {
 			log.Printf("%#v", b)
 			log.Println("==========================================================================================")
 			for i, component := range b.Components {
-				component, _ := component.save()
+				component, _ := component.save(db)
 
 				b.Components[i] = component
 			}
@@ -361,7 +316,7 @@ func (b Bike) save() {
 			log.Println("Updating the record")
 			for i, nc := range b.Components {
 
-				nc, err := nc.save()
+				nc, err := nc.save(db)
 				if err != nil {
 					log.Printf("Could not save : %v\n", nc)
 				} else {
@@ -373,9 +328,9 @@ func (b Bike) save() {
 			b = *oldb
 		}
 	} else {
-		b.Brand = b.Brand.save()
+		b.Brand = b.Brand.save(db)
 		for i, component := range b.Components {
-			component, _ := component.save()
+			component, _ := component.save(db)
 			b.Components[i] = component
 		}
 		db.Save(&b)
@@ -383,7 +338,7 @@ func (b Bike) save() {
 }
 
 // GetAllBikes will return all the bikes with the pagination asked
-func GetAllBikes(page string, perPage string) interface{} {
+func GetAllBikes(db *gorm.DB, page string, perPage string) interface{} {
 	ipage, err := strconv.Atoi(page)
 	if err != nil {
 		ipage = 0
@@ -400,7 +355,7 @@ func GetAllBikes(page string, perPage string) interface{} {
 }
 
 // Get Bike will return the request bike struct
-func (Bike) Get(values url.Values, id int) (int, interface{}) {
+func (Bike) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 	page := values.Get("page")
 	perPage := values.Get("per_page")
 	/*if values.Get("name") == "" {
@@ -409,23 +364,23 @@ func (Bike) Get(values url.Values, id int) (int, interface{}) {
 	// Let Display All that We Have
 	// Someday Pagination will be there
 	if id == 0 {
-		return 200, GetAllBikes(page, perPage)
+		return 200, GetAllBikes(db, page, perPage)
 	}
 	var bike Bike
-	err := db.Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
-	if err {
+	err := db.Preload("Components").Preload("Components.Standards").First(&bike, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return 404, "Bike not found"
 	}
 	return 200, bike
 }
 
 // Delete the bike on DB given an bike ID -int-
-func (Bike) Delete(values url.Values, id int) (int, interface{}) {
+func (Bike) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 	if id != 0 {
 		log.Print("Will Delete the ID : ")
 		log.Println(id)
-		err := db.Where("id = ?", id).Delete(&Bike{}).RecordNotFound()
-		if err {
+		err := db.Where("id = ?", id).Delete(&Bike{}).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 404, "Id Not Found"
 		}
 		return 200, "plop"
@@ -435,7 +390,7 @@ func (Bike) Delete(values url.Values, id int) (int, interface{}) {
 }
 
 // Post Handle Post request from http
-func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (Bike) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
 	var bike Bike
 	if adj != "" {
@@ -443,8 +398,8 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 			return 500, "FUCK"
 		}
 		log.Printf("%#v", body)
-		err := db.Preload("Brand").Preload("Components").Preload("Components.Standards").First(&bike, id).RecordNotFound()
-		if err {
+		err := db.Preload("Brand").Preload("Components").Preload("Components.Standards").First(&bike, id).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 404, "Bike not found"
 		}
 	} else {
@@ -460,14 +415,15 @@ func (Bike) Post(values url.Values, request *http.Request, id int, adj string) (
 				components = append(components, component)
 			}
 		}
-		bike.save()
+		bike.save(db)
 	}
 	return 200, bike
 }
 
-func (Bike) addComponent(bike Bike, component Component) {
+// TODO : use it
+func (Bike) addComponent(db *gorm.DB, bike Bike, component Component) {
 	bike.Components = append(bike.Components, component)
-	bike.save()
+	bike.save(db)
 }
 
 func (Bike) getCompatibleComponents(bike Bike) []Component {
@@ -479,119 +435,8 @@ func (Bike) getCompatibleComponents(bike Bike) []Component {
 	return compatibleComponents
 }
 
-// Post will save the BBStandard
-func (BBStandard) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
-	body := request.Body
-	fmt.Printf("Received args : \n\t %+v\n", values)
-	decoder := json.NewDecoder(body)
-	var standard BBStandard
-	err := decoder.Decode(&standard)
-	if err != nil {
-		panic("shiit")
-	}
-	log.Println(standard)
-	err = standard.save()
-	if err != nil {
-		return 500, fmt.Sprintf("Could Not Save the Standard : \n\t %s", err.Error())
-	}
-	return 200, standard
-}
-
-// Put updates BBStandard
-func (BBStandard) Put(values url.Values, body io.ReadCloser) (int, interface{}) {
-	fmt.Printf("Received args : \n\t %+v\n", values)
-	decoder := json.NewDecoder(body)
-	var standard BBStandard
-	err := decoder.Decode(&standard)
-	if err != nil {
-		panic("shiit")
-	}
-	log.Println(standard)
-	err = standard.save()
-	if err != nil {
-		return 500, fmt.Sprintf("Could Not Save the Standard : \n\t%s", err.Error())
-	}
-	return 200, standard
-}
-
-// GetAllStandards will returns al the standards
-func GetAllStandards(page string, perPage string) (standards []StandardInt) {
-	ipage, err := strconv.Atoi(page)
-	if err != nil {
-		ipage = 0
-	}
-	// Retrieve the per_page arg, if not a number default to 30
-	iperPage, err := strconv.Atoi(perPage)
-	if err != nil {
-		iperPage = defaultPerPage
-	}
-	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
-	db.Order("name").Offset(ipage * iperPage).Limit(iperPage).Find(&standards)
-	return
-}
-
-// Get BBStandard return the requests BB Standards
-func (BBStandard) Get(values url.Values, id int) (int, interface{}) {
-	page := values.Get("page")
-	perPage := values.Get("per_page")
-	/*if values.Get("name") == "" {
-		return 200, GetAllBikes()
-	}*/
-	// Let Display All that We Have
-	// Someday Pagination will be there
-	if id == 0 {
-		return 200, GetAllStandards(page, perPage)
-	}
-	var standard BBStandard
-	err := db.First(&standard, id).RecordNotFound()
-	if err {
-		return 404, "Standard not found"
-	}
-	return 200, standard
-}
-
-// Delete BB standard will remove the BB sTandard struct in the database
-func (BBStandard) Delete(values url.Values, id int) (int, interface{}) {
-	// TODO : implement Delete method
-	return 200, ""
-}
-
-func (s *BBStandard) save() (err error) {
-	// If we have a new record we create it
-	if db.NewRecord(&s) {
-		olds := new(BBStandard)
-		if db.Where("name = ? AND code = ?", s.Name, s.Code).First(&olds).RecordNotFound() {
-			log.Println("==========================================================================================")
-			log.Println("Creating the record")
-			log.Printf("%#v", s)
-			log.Println("==========================================================================================")
-
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(s).Error
-			if err != nil {
-				return
-			}
-		} else {
-			log.Println("Updating the record")
-			log.Println(olds)
-			err = db.Model(olds).Updates(s).Error
-			if err != nil {
-				return
-			}
-			log.Println(olds)
-			*s = *olds
-		}
-	} else {
-		err = db.Save(&s).Error
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
 // Post will save the component in database
-func (Component) Post(values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (Component) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	body := request.Body
 	fmt.Printf("Received args : \n\t %+v\n", body)
 	decoder := json.NewDecoder(body)
@@ -602,7 +447,7 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 		return 500, "Could Not Decode the Data"
 	}
 	log.Println(component)
-	component, err = component.save()
+	component, err = component.save(db)
 	if err != nil {
 		return 500, "Could Not Save the Component"
 	}
@@ -610,7 +455,7 @@ func (Component) Post(values url.Values, request *http.Request, id int, adj stri
 }
 
 // Get return a generic Component
-func (Component) Get(values url.Values, id int) (int, interface{}) {
+func (Component) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 
 	page, err := strconv.Atoi(values.Get("page"))
 	if err != nil {
@@ -623,24 +468,24 @@ func (Component) Get(values url.Values, id int) (int, interface{}) {
 	}
 	var c Component
 	if values.Get("name") == "" && values.Get("search") == "" {
-		return 200, c.getAll(page, perPage)
+		return 200, c.getAll(db, page, perPage)
 	} else if values.Get("search") != "" {
-		return 200, c.search(page, perPage, values.Get("search"))
+		return 200, c.search(db, page, perPage, values.Get("search"))
 	}
 
 	log.Println(values.Get("name"))
-	notFound := db.Preload("Standards").
+	err = db.Preload("Standards").
 		Preload("Type").
 		Preload("Brand").
 		Find(&c, "name= ? ", values.Get("name")).
-		RecordNotFound()
-	if notFound {
+		Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return 404, "Component not found"
 	}
 	return 200, c
 }
 
-func (Component) search(page int, perPage int, filter string) (components []Component) {
+func (Component) search(db *gorm.DB, page int, perPage int, filter string) (components []Component) {
 	filter = fmt.Sprintf("%%%s%%", filter)
 	db.Preload("Standards").
 		Preload("Type").
@@ -651,15 +496,15 @@ func (Component) search(page int, perPage int, filter string) (components []Comp
 		Limit(perPage)
 	return
 }
-func (Component) getAll(page int, perPage int) (components []Component) {
+func (Component) getAll(db *gorm.DB, page int, perPage int) (components []Component) {
 
 	//TODO : return LINKS Header with the next page and previous page
 	db.Preload("Standards").Preload("Type").Preload("Brand").Offset(page * perPage).Limit(perPage).Find(&components)
 	return components
 }
 
-func (c Component) save() (Component, error) {
-	if db.NewRecord(c) {
+func (c Component) save(db *gorm.DB) (Component, error) {
+	if c.ID == 0 {
 		oldc := new(Component)
 		db.Where(c.Brand).First(&c.Brand)
 		db.Where(c.Type).First(&c.Type)
@@ -690,15 +535,15 @@ func (c Component) save() (Component, error) {
 					}
 				}
 			}
-			c.Brand = c.Brand.save()
-			c.Type = c.Type.save()
+			c.Brand = c.Brand.save(db)
+			c.Type = c.Type.save(db)
 			db.Model(&oldc).Updates(&c)
 			c = *oldc
 		}
 	} else {
 		// Maybe Save nested object independantly ?
-		c.Type = c.Type.save()
-		c.Brand = c.Brand.save()
+		c.Type = c.Type.save(db)
+		c.Brand = c.Brand.save(db)
 		db.Save(&c)
 	}
 	return c, db.Error
