@@ -15,7 +15,7 @@ import (
 
 // BBStandard will define the bottom bracket standard
 type BBStandard struct {
-	Standard `gorm:"embedded;embeddedPrefix:bb_"`
+	Standard `gorm:"embedded"`
 	// Thread definition (if needed)
 	ThreadID int            `json:"-"`
 	Thread   ThreadStandard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`

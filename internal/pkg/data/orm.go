@@ -19,7 +19,9 @@ func InitDB(config config.Config) *gorm.DB {
 		config.DB.Host,
 		config.DB.DBname)
 	log.Printf("Connecting to %s", connectionString)
-	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+	db, err := gorm.Open(
+		postgres.Open(connectionString),
+		&gorm.Config{DisableForeignKeyConstraintWhenMigrating: true})
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
 	db.Debug()
