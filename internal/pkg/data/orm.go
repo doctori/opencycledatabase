@@ -8,6 +8,7 @@ import (
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // InitDB will initialise the database connection and the scheme
@@ -25,7 +26,10 @@ func InitDB(config config.Config) *gorm.DB {
 	checkErr(err, "Postgres Opening Failed")
 	// Debug Mode
 	db.Debug()
-	db.AutoMigrate(&Image{}, &ComponentType{}, &Brand{}, &standards.BBStandard{}, &Component{}, &Bike{})
+	db.Logger.LogMode(logger.LogLevel(7))
+	db.AutoMigrate(&Image{}, &ComponentType{}, &Brand{}, &Component{}, &Bike{})
+	// Standards
+	db.AutoMigrate(&standards.BottomBracket{}, &standards.ChainRing{}, &standards.Crank{})
 	checkErr(err, "Create tables failed")
 
 	return db

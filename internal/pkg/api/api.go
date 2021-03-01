@@ -119,7 +119,7 @@ func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, res
 		rw.Write(content)
 	}
 }
-func (api *API) requestHandler(db *gorm.DB, resource Resource, resourceType string) http.HandlerFunc {
+func (api *API) requestHandler(db *gorm.DB, resource Resource, resourceType string, isPrefixed bool) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
 
 		var data interface{}
@@ -131,17 +131,28 @@ func (api *API) requestHandler(db *gorm.DB, resource Resource, resourceType stri
 		splittedPath := strings.SplitAfter(request.URL.Path, "/")
 		// Retrieve the path after the resource ID
 		// the index 0 of the splitted Path is "/"
-		// the index 1 is the resource type (can differ from the resourceType)
-		// the index 2 if exists is the resource id
-		// the index 3 if exists is the adjective
+		// the index 1 is the resource type (can differ from the resourceType)(in case of a santard it's just standard)
+		// the index 2 if exists is the resource id (in case of a standard it's the standard type)
+		// the index 3 if exists is the adjective (incase of a standard it's the standard ID)
 		id := 0
 		adj := ""
 		pathLength := len(splittedPath)
-		if pathLength >= 3 {
-			id, _ = strconv.Atoi(strings.Replace(splittedPath[2], "/", "", -1))
-			if pathLength == 4 {
-				adj = strings.Replace(splittedPath[3], "/", "", -1)
+		if isPrefixed {
+			log.Print("We are a standard !")
+			if pathLength >= 4 {
+				id, _ = strconv.Atoi(strings.Replace(splittedPath[3], "/", "", -1))
+				if pathLength == 5 {
+					adj = strings.Replace(splittedPath[4], "/", "", -1)
+				}
 			}
+		} else {
+			if pathLength >= 3 {
+				id, _ = strconv.Atoi(strings.Replace(splittedPath[2], "/", "", -1))
+				if pathLength == 4 {
+					adj = strings.Replace(splittedPath[3], "/", "", -1)
+				}
+			}
+
 		}
 
 		body := request.Body
@@ -187,8 +198,8 @@ func (api *API) AddResource(db *gorm.DB, resource Resource, path string) {
 
 	}
 	log.Printf("adding path %v", path)
-	http.HandleFunc(path, api.requestHandler(db, resource, resourceType))
-	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType))
+	http.HandleFunc(path, api.requestHandler(db, resource, resourceType, false))
+	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType, false))
 
 }
 
