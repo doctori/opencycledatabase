@@ -12,33 +12,52 @@
       </option>
     </select>
   </div>
-  <div>
-    <div v-if="loading">
-      Loading ...
+  <!-- let's display the common fields for all standards -->
+  <!-- let's list all the countries !! -->
+  <div id="standardCountry">
+    Country :
+    <select v-model="std.country" >
+      <option label="none"></option>
+      <option v-for="country in countryList" v-bind:key="country.alpha3Code">
+        {{country.name}}
+      </option>
+    </select>
+  </div>
+  <!-- let's list the known brands -->
+  <div id="standardBrand">
+    Brand :
+    <select v-model="std.brand" >
+      <option label="none"></option>
+      <option v-for="brand in brands" v-bind:key="brand.Name">
+        {{brand.Name}}
+      </option>
+    </select>
+  </div>
+  <div v-if="loading">
+    Loading ...
+  </div>
+  <div v-for="(value,key) in stdDefintion" v-bind:key="key">
+    <label v-bind:id="key" class="std-field">
+      {{key}}
+    </label>
+    <div v-if="value.Type == 'bool'">
+      <input type="checkbox" v-on:change=setFieldValue($event,key) true-value="true" false-value="false" >
     </div>
-    <div v-for="(value,key) in stdDefintion" v-bind:key="key">
-      <div v-bind:id="key" v-if="includeFields(key)">
-        <label v-bind:id="key" class="std-field">
-          {{key}}
-        </label>
-        <input v-bind:id="key" class="std-input" v-bind:key="key" v-model="form.parent_id[n]">
-      </div>
+    <div v-else>
+      <input v-bind:id="key" class="std-input" v-bind:key="key" v-on:change=setFieldValue($event,key)>
     </div>
   </div>
-    <div id="result">
-      {{ std.name }} : {{ std.type }}
-    </div>
-    <div v-if="error">
-      HAAAAAAAAAA {{error}}
-    </div>
-    <div v-if="stdDefintion" id="type def">
-      Definition : 
-      {{stdDefintion}}
-    </div>
-    <button key="submit" v-on:click="submitStandard()">
-      submit
-    </button>
+  <div id="result">
+    {{ std }}
   </div>
+  <div v-if="error">
+    HAAAAAAAAAA {{error}}
+  </div>
+  <button key="submit" v-on:click="submitStandard()">
+    submit
+  </button>
+</div>
+
 </template>
 
 <script>
@@ -51,19 +70,30 @@ export default {
     return {
       'std':{
         'name':'',
-        'type':''
+        'type':'',
+        // TODO : get Country list
+        'country':'',
+        // TODO : get brand
+        'brand':''
       },
+      'brands': [],
+      'countries':[],
       'loading':false,
       'stdDefintion':null,
       'error': null,
-      'ignoredFields':[
-        'ID',
-        'Name',
-        'CreatedAt',
-        'UpdatedAt',
-        'DeletedAt'
-      ]
     }
+  },
+  mounted: function (){
+    axios
+        .get("https://restcountries.eu/rest/v2/all")
+        .then(response => (
+          this.countryList = response.data
+        ))
+    axios
+      .get("/brands")
+      .then(response => (
+        this.brands = response.data
+      ))
   },
   methods: {
     includeFields(field){
@@ -90,6 +120,9 @@ export default {
       .finally(()=>{
         this.loading = false
       })
+    },
+    setFieldValue(value,field){
+      this.std[field]=value.target.value
     },
     submitStandard(){
       console.log(this.std)
