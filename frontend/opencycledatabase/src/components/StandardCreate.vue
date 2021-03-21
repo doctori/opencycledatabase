@@ -2,7 +2,7 @@
   <div class="standard-create" id="standard-create">
     <h2> Standard Name </h2>
   <div id="standardName">
-    Name : <input v-model="std.name" placeholder="standard Name">
+    Name : <MDBInput v-model="std.name" label="Standard Name"/>
   </div>
   <div id="standardType">
     Standard Type : 
@@ -40,8 +40,18 @@
     <label v-bind:id="key" class="std-field">
       {{key}}
     </label>
-    <div v-if="value.Type == 'bool'">
-      <input type="checkbox" v-on:change=setFieldValue($event,key) true-value="true" false-value="false" >
+    <div v-if="value.Type == 'bool'" class="form-check">
+      <input class="form-check-input" type="checkbox" v-on:change=setFieldValue($event,key,value.Type) true-value="true" false-value="false" />
+    </div>
+    <div v-else-if="value.Type == 'int'">
+      <MDBInput v-bind:id="key" class="std-input" type="number" v-bind:label="value.Name" v-on:change=setFieldValue($event,key,value.Type) />
+    </div>
+    <div v-else-if="value.Type == 'nested' || value.Type == 'nestedArray'">
+      <select>
+        <option v-for="nestedStandard in nestedStandards[key]" v-bind:key="nestedStandard.ID">
+          {{nestedStandard.Name}}
+        </option>
+      </select>
     </div>
     <div v-else>
       <input v-bind:id="key" class="std-input" v-bind:key="key" v-on:change=setFieldValue($event,key)>
@@ -62,10 +72,13 @@
 
 <script>
 import axios from 'axios'
-
+import { MDBInput } from 'mdb-vue-ui-kit';
 export default {
   name: 'StandardCreate',
   props: {'standards':Array},
+  components:{
+     MDBInput,
+  },
   data : function(){
     return {
       'std':{
@@ -77,9 +90,10 @@ export default {
         'brand':''
       },
       'brands': [],
-      'countries':[],
+      'countryList':[],
       'loading':false,
       'stdDefintion':null,
+      'nestedStandards': Map,
       'error': null,
     }
   },
@@ -100,6 +114,17 @@ export default {
       return !this.ignoredFields.includes(field)
 
     },
+    getStandards(type){
+      this.loading = true;
+      axios
+      .get("/standards/"+type.toLowerCase())
+      .then(response =>(
+        this.nestedStandards[type]=response.data
+      ))
+      .finally(()=>{
+        this.loading=false
+      })
+    },
     getStandardDefintion(type){
       this.loading = true;
       axios
@@ -119,12 +144,29 @@ export default {
       })
       .finally(()=>{
         this.loading = false
+        this.refreshNestedStd()
       })
     },
-    setFieldValue(value,field){
-      this.std[field]=value.target.value
+    refreshNestedStd(){
+      for( const [,value] of Object.entries(this.stdDefintion)) {
+        if (value.Type == "nested" || value.Type == "nestedArray"){
+          this.getStandards(value.NestedType)
+        }
+      }
+    },
+    setFieldValue(value,field,type){
+      value = value.target.value
+      console.log(type)
+      if (type == "int"){
+        value = Number(value)
+      }
+      this.std[field]=value
     },
     submitStandard(){
+      axios.post('/standards/'+this.std.type.toLowerCase(),this.std)
+      .then(result => (
+        console.log(result)
+      ))
       console.log(this.std)
     }
   }

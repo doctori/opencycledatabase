@@ -16,9 +16,9 @@ type Crank struct {
 	// Length of the crank (cm)
 	Length float32 `formType:"int" formUnit:"cm"`
 	// BB holds the BB compatibles with this crank
-	BB []BottomBracket `gorm:"many2many:cranks_bottombrackets" formType:"nested"`
+	BB []BottomBracket `gorm:"many2many:cranks_bottombrackets" formType:"nestedArray"`
 	// Chainrings will hold the number of compatible chainring standards
-	Chainrings []ChainRing `gorm:"many2many:cranks_chainrings" formType:"nested"`
+	Chainrings []ChainRing `gorm:"many2many:cranks_chainrings" formType:"nestedArray"`
 }
 
 func NewCrank() *Crank {

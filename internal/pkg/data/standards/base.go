@@ -48,21 +48,13 @@ type Standard struct {
 	Description string `formType:"string"`
 }
 
-// ThreadStandard defines the the standard of a thread used
-// todo : https://en.wikipedia.org/wiki/Screw_thread
-type ThreadStandard struct {
-	gorm.Model
-	ThreadPerInch float32
-	Diameter      float32
-	Orientation   string
-}
-
 // FieldForm holds the defintion of the field on the Form side (UI)
 type FieldForm struct {
-	Name  string
-	Label string
-	Type  string
-	Unit  string
+	Name       string
+	Label      string
+	Type       string
+	Unit       string
+	NestedType string
 }
 
 // IsNul return true if the the standard is empty
@@ -100,6 +92,8 @@ func (Standard) Delete(db *gorm.DB, values url.Values, id int, standardType Stan
 	db.Delete(standard)
 	return 200, ""
 }
+
+// GetFormFields will return the custom fields of a Standard to be used in the UI
 func GetFormFields(s StandardInt) map[string]FieldForm {
 	fields := make(map[string]FieldForm)
 	t := reflect.TypeOf(s).Elem()
@@ -112,12 +106,29 @@ func GetFormFields(s StandardInt) map[string]FieldForm {
 			continue
 		}
 		unitTag := field.Tag.Get("formUnit")
+
 		log.Printf("%d, %v (%v), tag : '%v'\n", i, field.Name, field.Type.Name(), typeTag)
-		fields[field.Name] = FieldForm{
-			Name: field.Name,
-			Type: typeTag,
-			Unit: unitTag,
+		nestedType := ""
+		// non standard type
+		if typeTag == "nested" || typeTag == "nestedArray" {
+			nestedType = field.Type.Name()
+			if nestedType == "" {
+				nestedType = field.Type.Elem().Name()
+			}
 		}
+
+		if field.Type.Name() == "" {
+			log.Println(field.Type.Elem())
+			nestedType = field.Type.Elem().Name()
+
+		}
+		fields[field.Name] = FieldForm{
+			Name:       field.Name,
+			Type:       typeTag,
+			Unit:       unitTag,
+			NestedType: nestedType,
+		}
+
 	}
 	return fields
 }

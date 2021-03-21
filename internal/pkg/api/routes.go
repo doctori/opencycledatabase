@@ -35,6 +35,7 @@ func (api *API) Init(db *gorm.DB, conf *config.Config) {
 	api.addStandard(db, standards.NewRearDerailleur())
 	api.addStandard(db, standards.NewWheel())
 	api.addStandard(db, standards.NewSpoke())
+	api.addStandard(db, standards.NewThread())
 	api.AddResource(db, &data.Brand{}, "/brands")
 	http.HandleFunc("/standards", api.returnStandardsLists())
 	api.AddNonJSONResource(db, image, "")

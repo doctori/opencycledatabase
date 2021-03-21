@@ -13,17 +13,17 @@ import (
 type BottomBracket struct {
 	Standard `gorm:"embedded" formType:"-"`
 	// Thread definition (if needed)
-	ThreadID int            `json:"-"`
-	Thread   ThreadStandard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" formType:"nested"`
+	ThreadID int    `json:"-"`
+	Thread   Thread `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" formType:"nested"`
 	// IsThreaded : true if  it's a threaded bottom bracket
 	IsThreaded bool `json:"isThreaded" formType:"bool"`
 	// IsPressFit : true if it's a pressfit bottom bracket
 	// (can't be true with isThreaded)
 	IsPressFit bool `json:"isPressFit" formType:"bool"`
 	// the inside width of the shell in mm
-	ShellWidth float32 `json:"shellWidth" formUnit:"mm"`
+	ShellWidth float32 `json:"shellWidth" formType:"int" formUnit:"mm"`
 	// External diameter in mm
-	ExternalWidth float32 `json:"externalWidth" formUnit:"mm"`
+	ExternalWidth float32 `json:"externalWidth" formType:"int" formUnit:"mm"`
 }
 
 func NewBottomBracket() *BottomBracket {
