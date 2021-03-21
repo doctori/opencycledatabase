@@ -66,6 +66,11 @@
   <button key="submit" v-on:click="submitStandard()">
     submit
   </button>
+  <div id="save-results" v-if="saved">
+  </div>
+  <div id="save-error" v-if="saveError">
+    {{saveError}}
+  </div>
 </div>
 
 </template>
@@ -89,6 +94,8 @@ export default {
         // TODO : get brand
         'brand':''
       },
+      'saved': false,
+      'saveError': null,
       'brands': [],
       'countryList':[],
       'loading':false,
@@ -156,7 +163,6 @@ export default {
     },
     setFieldValue(value,field,type){
       value = value.target.value
-      console.log(type)
       if (type == "int"){
         value = Number(value)
       }
@@ -165,9 +171,13 @@ export default {
     submitStandard(){
       axios.post('/standards/'+this.std.type.toLowerCase(),this.std)
       .then(result => (
-        console.log(result)
+        this.std = result.data,
+        this.saved = true
       ))
-      console.log(this.std)
+      .catch(error =>{
+        console.log(error)
+        this.saveError = error
+      })
     }
   }
 

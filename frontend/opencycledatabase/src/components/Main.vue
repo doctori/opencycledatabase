@@ -2,7 +2,7 @@
     <header>
       <div class="header">
         <img alt="Vue logo" src="../assets/logo.png">
-        <h1>This is the header</h1>
+        <h1>Welcome to the Open Cycle Database</h1>
         
       </div>
     </header>
