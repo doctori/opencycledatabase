@@ -12,7 +12,7 @@ import (
 )
 
 // InitDB will initialise the database connection and the scheme
-func InitDB(config config.Config) *gorm.DB {
+func InitDB(config *config.Config) *gorm.DB {
 	connectionString := fmt.Sprintf(
 		"user=%s password='%s' host=%s dbname=%s",
 		config.DB.Username,

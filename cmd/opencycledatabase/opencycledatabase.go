@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	db *gorm.DB
+	db   *gorm.DB
+	conf *config.Config
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 	// Initiate the database =
 
 	api := new(api.API)
-	api.Init(db)
+	api.Init(db, conf)
 
 }
 
@@ -31,7 +32,6 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var conf config.Config
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&conf)
 	log.Printf("%#v", conf)

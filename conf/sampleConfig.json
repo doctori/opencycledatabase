@@ -5,5 +5,9 @@
 		"password":"obd",
 		"port":5432,
 		"dbname":"odb"
+	},
+	"API":{
+		"bindIP": "127.0.0.1",
+		"bindPort": 8081
 	}
 }

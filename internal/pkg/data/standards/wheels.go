@@ -12,7 +12,14 @@ import (
 
 type Wheel struct {
 	Standard `gorm:"embedded"`
-	// TODO Specs ??
+	// Diameter : the Diameter of the wheel (let's say mm)
+	Diameter int16 `formType:"int" formUnit:"mm"`
+}
+
+func NewWheel() *Wheel {
+	w := new(Wheel)
+	w.Type = "Wheel"
+	return w
 }
 
 // Get Wheel return the requests Wheel Standards ID

@@ -184,6 +184,27 @@ func (api *API) requestHandler(db *gorm.DB, resource Resource, resourceType stri
 		rw.Write(content)
 	}
 }
+func (api *API) returnStandardsLists() http.HandlerFunc {
+	return func(rw http.ResponseWriter, request *http.Request) {
+
+		var content []byte
+
+		if request.Method != http.MethodGet {
+			api.Abort(rw, 405)
+		}
+
+		content, err := json.Marshal(managedStandard)
+		if err != nil {
+			api.Abort(rw, 500)
+		}
+		rw.Header().Set("Content-Type", "text/json; charset=utf-8")
+		rw.Header().Set("Access-Control-Allow-Origin", "*")
+		rw.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+		rw.Header().Set("Access-Control-Allow-Methods", "GET")
+		rw.WriteHeader(200)
+		rw.Write(content)
+	}
+}
 
 // AddResource add path to the http Handler
 func (api *API) AddResource(db *gorm.DB, resource Resource, path string) {

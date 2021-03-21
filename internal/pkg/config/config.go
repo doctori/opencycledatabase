@@ -9,7 +9,13 @@ type DBConfig struct {
 	DBname   string `json:"dbname"`
 }
 
+type APIConfig struct {
+	BindIP   string `json:"bindÏP"`
+	BindPort int    `json:"bindPort"`
+}
+
 // Config holds the main configuration of the application
 type Config struct {
-	DB DBConfig `json:"db"`
+	DB  DBConfig  `json:"db"`
+	API APIConfig `json:"API"`
 }

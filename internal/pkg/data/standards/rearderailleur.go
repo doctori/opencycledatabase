@@ -11,8 +11,16 @@ import (
 )
 
 type RearDerailleur struct {
-	Standard `gorm:"embedded"`
+	Standard `gorm:"embedded" formType:"-"`
 	// TODO Specs ??
+	// CageLength hold the length of the cage in mm
+	CageLength float32 `json:"CageLength" formType:"int"  formUnit:"mm"`
+}
+
+func NewRearDerailleur() *RearDerailleur {
+	rd := new(RearDerailleur)
+	rd.Type = "RearDerailleur"
+	return rd
 }
 
 // Get RearDerailleur return the requests RearDerailleur Standards ID

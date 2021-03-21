@@ -38,14 +38,14 @@ type StandardInt interface {
 // Standard define the generic common Standard properties
 type Standard struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
-	gorm.Model
+	gorm.Model `formType:"-"`
 	// TODO : this is a embded struct on other structs,
 	//  find a way to create indexes on each struct that embed this struct
-	Name        string
-	Country     string
-	Code        string
-	Type        string
-	Description string
+	Name        string `formType:"string" `
+	Country     string `formType:"country"`
+	Code        string `formType:"string"`
+	Type        string `formType:"string"`
+	Description string `formType:"string"`
 }
 
 // ThreadStandard defines the the standard of a thread used
@@ -55,6 +55,14 @@ type ThreadStandard struct {
 	ThreadPerInch float32
 	Diameter      float32
 	Orientation   string
+}
+
+// FieldForm holds the defintion of the field on the Form side (UI)
+type FieldForm struct {
+	Name  string
+	Label string
+	Type  string
+	Unit  string
 }
 
 // IsNul return true if the the standard is empty
@@ -89,9 +97,29 @@ func (Standard) Delete(db *gorm.DB, values url.Values, id int, standardType Stan
 		return 404, "Standard not found"
 	}
 	// TODO : implement Delete method
-
 	db.Delete(standard)
 	return 200, ""
+}
+func GetFormFields(s StandardInt) map[string]FieldForm {
+	fields := make(map[string]FieldForm)
+	t := reflect.TypeOf(s).Elem()
+	log.Printf("Type: %s\n", t.Name())
+	log.Printf("Kind: %s\n", t.Kind())
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		typeTag := field.Tag.Get("formType")
+		if typeTag == "-" {
+			continue
+		}
+		unitTag := field.Tag.Get("formUnit")
+		log.Printf("%d, %v (%v), tag : '%v'\n", i, field.Name, field.Type.Name(), typeTag)
+		fields[field.Name] = FieldForm{
+			Name: field.Name,
+			Type: typeTag,
+			Unit: unitTag,
+		}
+	}
+	return fields
 }
 
 // Get Standard return the requests Standards (given the type of standard requested)
@@ -99,8 +127,11 @@ func (Standard) Get(db *gorm.DB, values url.Values, id int, standardType Standar
 	log.Printf("having Get for standard [%#v] with ID : %d", standardType, id)
 	page := values.Get("page")
 	perPage := values.Get("per_page")
-
-	//standard := reflect.New(reflect.TypeOf(standardType)).Interface()
+	structOnly := values.Get("struct_only")
+	// if the request just want the struct we'll respond an new struct only
+	if structOnly != "" {
+		return 200, GetFormFields(standardType)
+	}
 	// Let Display All that We Have
 	// Someday Pagination will be there
 	if id == 0 {

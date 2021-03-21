@@ -12,12 +12,18 @@ import (
 
 // FrontDerailleur, holds the specs for a Front Derailleur
 type FrontDerailleur struct {
-	Standard `gorm:"embedded"`
+	Standard `gorm:"embedded" formType:"-"`
 	// TODO Specs ??
 	// BrazedOn : is the Front derailleur need a brazed on fixture or a collar (Clamp On)?
-	BrazedOn bool
+	BrazedOn bool `formType:"bool"`
 	// CollarSize
-	CollarSize float32
+	CollarSize float32 `formType:"int" formUnit:"mm"`
+}
+
+func NewFrontDerailleur() *FrontDerailleur {
+	fd := new(FrontDerailleur)
+	fd.Type = "FrontDerailleur"
+	return fd
 }
 
 // Get FrontDerailleur return the requests FrontDerailleur Standards ID

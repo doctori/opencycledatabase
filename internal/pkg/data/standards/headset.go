@@ -12,11 +12,18 @@ import (
 
 // Headset, holds the specs for a Front Derailleur
 type Headset struct {
-	Standard `gorm:"embedded"`
+	Standard `gorm:"embedded" formType:"-"`
 	// SHISAnnotation the actual S.H.I.S Annotation like ZS44/28.6"	SHISAnnotation string
-	SHISAnnotation string
+	SHISAnnotation string `formType:"string"`
+	// TODO : be able to list the possible values
 	// FitType , is headset integrated or PressFit ?
-	FitType string
+	FitType string `formType:"String"`
+}
+
+func NewHeadset() *Headset {
+	hs := new(Headset)
+	hs.Type = "Headset"
+	return hs
 }
 
 // Get Headset return the requests Headset Standards ID

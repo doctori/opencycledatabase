@@ -11,17 +11,24 @@ import (
 
 // ChainRing will define the Chainrings standard
 type ChainRing struct {
-	Standard `gorm:"embedded"`
+	Standard `gorm:"embedded" formType:"-"`
 	// BoltCircleDiameter of the chainring (ref : https://www.sheldonbrown.com/gloss_bo-z.html#bcd)
-	BoltCircleDiameter float32
+	BoltCircleDiameter float32 `formType:"int" formUnit:"cm"`
 	// BoltsNumber hold the number of bolt on the chainring
-	BoltsNumber int
+	BoltsNumber int `formType:"int" formUnit:"count"`
 	// IsIntegrated is true if the chainring is soldered to the crank
-	IsIntegrated bool
+	IsIntegrated bool `formType:"bool"`
 	// IsDirectlyMounted weither the chainring is a direct mount chainring or not
-	IsDirectlyMounted bool
+	IsDirectlyMounted bool `formType:"bool"`
 	// Teeth is the number of teeth a chainring has (0-255)
-	Teeth uint8
+	Teeth uint8 `formType:"int" formUnit:"count"`
+}
+
+// NewChainRing return a ChainRing empty object with some predefined fields
+func NewChainRing() *ChainRing {
+	cr := new(ChainRing)
+	cr.Type = "ChainRing"
+	return cr
 }
 
 // Get ChainRing return the requests ChainRing Standards ID

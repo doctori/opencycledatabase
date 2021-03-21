@@ -11,19 +11,25 @@ import (
 
 // BottomBracket will define the bottom bracket standard
 type BottomBracket struct {
-	Standard `gorm:"embedded"`
+	Standard `gorm:"embedded" formType:"-"`
 	// Thread definition (if needed)
 	ThreadID int            `json:"-"`
-	Thread   ThreadStandard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Thread   ThreadStandard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" formType:"nested"`
 	// IsThreaded : true if  it's a threaded bottom bracket
-	IsThreaded bool
+	IsThreaded bool `json:"isThreaded" formType:"bool"`
 	// IsPressFit : true if it's a pressfit bottom bracket
 	// (can't be true with isThreaded)
-	IsPressFit bool
+	IsPressFit bool `json:"isPressFit" formType:"bool"`
 	// the inside width of the shell in mm
-	ShellWidth float32
+	ShellWidth float32 `json:"shellWidth" formUnit:"mm"`
 	// External diameter in mm
-	ExternalWidth float32
+	ExternalWidth float32 `json:"externalWidth" formUnit:"mm"`
+}
+
+func NewBottomBracket() *BottomBracket {
+	bb := new(BottomBracket)
+	bb.Type = "BottomBracket"
+	return bb
 }
 
 // Get BottomBracket return the requests BottomBracket Standards ID

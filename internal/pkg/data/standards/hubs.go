@@ -12,17 +12,23 @@ import (
 
 // Hub holds the information on the hub
 type Hub struct {
-	Standard `gorm:"embedded"`
+	Standard `gorm:"embedded" formType:"-"`
 	// Holes : the number of spokes attached to the hub
-	Holes uint8
+	Holes uint8 `formType:"int"`
 	// AxleType the type of axle required
-	AxleType string
+	AxleType string `formType:"string"`
 	// AxelLength the Length of the Axel (external)
-	AxelLength float32
+	AxelLength float32 `formType:"int" formUnit:"mm"`
 	// AxelDiameter the Diameter of the axle (external)
-	AxelDiameter float32
+	AxelDiameter float32 `formType:"int" formUnit:"mm"`
 	// HasDiscBrakes : does the hub support disc brakes
-	HasDiscBrakes bool
+	HasDiscBrakes bool `formType:"bool"`
+}
+
+func NewHub() *Hub {
+	h := new(Hub)
+	h.Type = "Hub"
+	return h
 }
 
 // Get Hub return the requests Hub Standards ID

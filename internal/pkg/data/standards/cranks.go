@@ -12,13 +12,19 @@ import (
 
 // Crank will define the Crank (not the crankset) standard
 type Crank struct {
-	Standard `gorm:"embedded"`
+	Standard `gorm:"embedded" formType:"-"`
 	// Length of the crank (cm)
-	Length float32
+	Length float32 `formType:"int" formUnit:"cm"`
 	// BB holds the BB compatibles with this crank
-	BB []BottomBracket `gorm:"many2many:cranks_bottombrackets"`
+	BB []BottomBracket `gorm:"many2many:cranks_bottombrackets" formType:"nested"`
 	// Chainrings will hold the number of compatible chainring standards
-	Chainrings []ChainRing `gorm:"many2many:cranks_chainrings"`
+	Chainrings []ChainRing `gorm:"many2many:cranks_chainrings" formType:"nested"`
+}
+
+func NewCrank() *Crank {
+	c := new(Crank)
+	c.Type = "Crank"
+	return c
 }
 
 // Get Crank return the requests Crank Standards ID
