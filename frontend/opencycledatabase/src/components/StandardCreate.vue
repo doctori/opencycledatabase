@@ -1,88 +1,88 @@
 <template>
-  <div class="standard-create" id="standard-create">
-    <h2> Standard Name </h2>
-  <div id="standardName">
-    Name : <MDBInput v-model="std.name" label="Standard Name"/>
-  </div>
-  <div id="standardType">
-    Standard Type : 
-    <select v-model="std.type" v-on:change="getStandardDefintion(std.type)">
-      <option v-for="standard in standards" v-bind:key="standard.Type">
-        {{standard.Type}}
-      </option>
-    </select>
-  </div>
-  <!-- let's display the common fields for all standards -->
-  <!-- let's list all the countries !! -->
-  <div id="standardCountry">
-    Country :
-    <select v-model="std.country" >
-      <option label="none"></option>
-      <option v-for="country in countryList" v-bind:key="country.alpha3Code">
-        {{country.name}}
-      </option>
-    </select>
-  </div>
-  <!-- let's list the known brands -->
-  <div id="standardBrand">
-    Brand :
-    <select v-model="std.brand" >
-      <option label="none"></option>
-      <option v-for="brand in brands" v-bind:key="brand.Name">
-        {{brand.Name}}
-      </option>
-    </select>
-  </div>
-  <div v-if="loading">
-    Loading ...
-  </div>
-  <div v-for="(value,key) in stdDefintion" v-bind:key="key">
-    <label v-bind:id="key" class="std-field">
-      {{key}}
-    </label>
-    <div v-if="value.Type == 'bool'" class="form-check">
-      <input class="form-check-input" type="checkbox" v-on:change=setFieldValue($event,key,value.Type) true-value="true" false-value="false" />
-    </div>
-    <div v-else-if="value.Type == 'int'">
-      <MDBInput v-bind:id="key" class="std-input" type="number" v-bind:label="value.Name" v-on:change=setFieldValue($event,key,value.Type) />
-    </div>
-    <div v-else-if="value.Type == 'nested' || value.Type == 'nestedArray'">
-      <select>
-        <option v-for="nestedStandard in nestedStandards[key]" v-bind:key="nestedStandard.ID">
-          {{nestedStandard.Name}}
-        </option>
-      </select>
-    </div>
-    <div v-else>
-      <input v-bind:id="key" class="std-input" v-bind:key="key" v-on:change=setFieldValue($event,key)>
-    </div>
-  </div>
-  <div id="result">
-    {{ std }}
-  </div>
-  <div v-if="error">
-    HAAAAAAAAAA {{error}}
-  </div>
-  <button key="submit" v-on:click="submitStandard()">
-    submit
-  </button>
-  <div id="save-results" v-if="saved">
-  </div>
-  <div id="save-error" v-if="saveError">
-    {{saveError}}
-  </div>
-</div>
+<v-card>
+  <v-form fluid>
+    <v-row align="center"  >
+      <v-col cols="12" id="standardType">
+      Standard Type : 
+      <v-autocomplete v-model="std.type" v-on:change="getStandardDefintion(std.type)"
+        :items="stdTypes" outlined dense chips
+      ></v-autocomplete>
+    </v-col>
+    </v-row>
+    <div class="standard-create" id="standard-create">
+      <h2> Standard Name </h2>
+    <v-col id="standardName">
+      <v-text-field v-model="std.name" label="Standard Name" required>Name</v-text-field>
+    </v-col>
+    
+    <!-- let's display the common fields for all standards -->
+    <!-- let's list all the countries !! -->
+    <v-row>
+      <v-col id="standardCountry">
+        Country :
+        <v-autocomplete v-model="std.country" label="country name" :items="countryList" item-text="name" item-value="alpha3Code" >
+        </v-autocomplete>
+      </v-col>
 
+      <!-- let's list the known brands -->
+      <v-col id="standardBrand">
+        Brand :
+        <v-autocomplete v-model="std.brand" label="brand name" :items="brands" item-text="Name" item-bind="ID">
+        </v-autocomplete>
+      </v-col>
+    </v-row>
+    <div v-if="loading">
+      Loading ...
+    </div>
+    <div v-else v-for="(value,key) in stdDefintion" v-bind:key="key">
+      <v-row v-if="value.Type == 'bool'" >
+        <v-col>
+        <v-switch v-model="std[value.Name]" class="form-check" :label=key>
+        </v-switch>
+        </v-col>
+      </v-row>
+      <v-row v-else-if="value.Type == 'int'">
+        <v-col  sm="6" cols="10">
+          <v-text-field  v-model="std[value.Name]" :suffix="value.Unit" :label=key>
+          </v-text-field>
+        </v-col>
+      </v-row>
+      <v-row v-else-if="value.Type == 'nested' || value.Type == 'nestedArray'">
+        <v-select v-model="std[value.Name]"  :items="nestedStandards[key]" item-text="Name" item-bind="ID" :label=key>
+        </v-select>
+      </v-row>
+      <v-row v-else>
+        <v-col sm="6" cols="10">
+          <v-text-field v-model="std[value.Name]" :label=key >
+          </v-text-field>
+        </v-col>
+      </v-row>
+    </div>
+    <div id="result">
+      {{ this.std }}
+    </div>
+    <div v-if="error">
+      HAAAAAAAAAA {{error}}
+    </div>
+    <button key="submit" v-on:click="submitStandard()">
+      submit
+    </button>
+    <div id="save-results" v-if="saved">
+    </div>
+    <div id="save-error" v-if="saveError">
+      {{saveError}}
+    </div>
+  </div>
+  </v-form>
+</v-card>
 </template>
 
 <script>
 import axios from 'axios'
-import { MDBInput } from 'mdb-vue-ui-kit';
 export default {
   name: 'StandardCreate',
   props: {'standards':Array},
   components:{
-     MDBInput,
   },
   data : function(){
     return {
@@ -102,6 +102,7 @@ export default {
       'stdDefintion':null,
       'nestedStandards': Map,
       'error': null,
+      'stdTypes': [],
     }
   },
   mounted: function (){
@@ -115,6 +116,11 @@ export default {
       .then(response => (
         this.brands = response.data
       ))
+      // build standard type list : 
+      this.standards.forEach(std => {
+        this.stdTypes.push(std.Type)
+      });
+
   },
   methods: {
     includeFields(field){
@@ -162,11 +168,16 @@ export default {
       }
     },
     setFieldValue(value,field,type){
-      value = value.target.value
+
+      //value = value.target.value
+      console.log(value)
+      console.log(field)
+      console.log(type)
       if (type == "int"){
         value = Number(value)
       }
       this.std[field]=value
+      console.log(this.std)
     },
     submitStandard(){
       axios.post('/standards/'+this.std.type.toLowerCase(),this.std)

@@ -1,15 +1,26 @@
 <template>
-<div class="standard-display">
-  <ul>
-    <li v-for="standard in standards" v-bind:key="standard.Type" v-bind:title="standard.Type">{{standard.Type}}</li>
-  </ul>
-</div>
+  <v-expansion-panels>
+    <v-expansion-panel>
+      <v-expansion-panel-header>
+        Standard List
+      </v-expansion-panel-header>
+      <v-expansion-panel-content>
+    <v-row class="standard-display">
+      <v-col >
+      <ul>
+        <li v-for="standard in standards" v-bind:key="standard.Type" v-bind:title="standard.Type">{{standard.Type}}</li>
+      </ul>
+      </v-col>
+    </v-row>
+      </v-expansion-panel-content>
+    </v-expansion-panel>
+  </v-expansion-panels>
 </template>
 
 <script>
 export default {
   name: 'StandardDisplay',
-  props: {'standards':Array}
+  props: {'standards': Array }
 }
 </script>
 

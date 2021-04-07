@@ -1,9 +1,10 @@
-import 'mdb-vue-ui-kit/css/mdb.min.css'
-import { createApp } from 'vue'
-import axios from 'axios'
+import Vue from 'vue'
 import App from './App.vue'
+import vuetify from './plugins/vuetify';
 
-var app = createApp(App)
-app.mount('#app')
+Vue.config.productionTip = false
 
-app.config.globalProperties.axios=axios
+new Vue({
+  vuetify,
+  render: h => h(App)
+}).$mount('#app')

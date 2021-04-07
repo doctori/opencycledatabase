@@ -1,32 +1,37 @@
 <template>
-    <header>
-      <div class="header">
-        <img alt="Vue logo" src="../assets/logo.png">
-        <h1>Welcome to the Open Cycle Database</h1>
-        
-      </div>
-    </header>
-    <main>
-      <div v-if="loading" class="loading">
-        Loading...
-      </div>
-      <div v-if="error" class="error">
-        {{ error.message }}
-      </div>
-      <div v-if="standards" class="content">
-        <standard-display :standards="standards"/>
-      </div>
-      <button id="createStandard" v-on:click="enableCreateStandard()">
-        Create Standard
-      </button>
-      <div v-if="createStandard" class="create-standard">
-        <standard-create :standards="standards"/>
-      </div>
-   </main>
+<div>
+    <v-main>
+      <v-container >
+        <v-row>
+          <div v-if="loading" class="loading">
+            Loading...
+          </div>
+          <div v-if="error" class="error">
+            {{ error.message }}
+          </div>
+          <v-col v-if="standards && !loading" class="content">
+            <standard-display :standards="standards"/>
+          </v-col>
+      </v-row>
+      </v-container>
+      
+      <v-container>
+        <v-row>
+          <v-col >
+            <v-btn id="createStandard" v-on:click="enableCreateStandard()">
+              Create Standard
+            </v-btn>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col v-if="createStandard" class="create-standard">
+            <standard-create :standards="standards"/>
+          </v-col>
+        </v-row>
+      </v-container>
+   </v-main>
 
-    <footer>
-      This is the footer
-    </footer>
+</div>
 </template>
 
 
@@ -45,10 +50,12 @@ export default {
   },
   data(){
     return{
+
       loading: false,
       post: null,
       error: null,
-      createStandard: false
+      createStandard: false,
+      standards: []
     }
   },
   // when the template is created
