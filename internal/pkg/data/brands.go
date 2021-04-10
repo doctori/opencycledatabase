@@ -19,6 +19,8 @@ type Brand struct {
 	CreationYear int
 	EndYear      int
 	Country      string
+	WikiHref     string
+	Href         string
 	PutNotSupported
 	DeleteNotSupported
 }

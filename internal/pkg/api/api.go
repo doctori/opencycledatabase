@@ -73,7 +73,7 @@ func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, res
 		var content []byte
 		var data interface{}
 		var code int
-
+		isData := false
 		method := request.Method // Get HTTP Method (string)
 		request.ParseForm()      // Populates request.Form
 		values := request.Form
@@ -83,14 +83,16 @@ func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, res
 		fmt.Printf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
 		case http.MethodGet:
-			var response interface{}
-			code, response = resource.Get(db, values, id)
+			code, data = resource.Get(db, values, id)
 			if code == 200 {
-				nonJSONResponse := response.(NonJSONData)
-				rw.Header().Set("Content-Type", nonJSONResponse.GetContentType())
-				//rw.Header().Set("Content-Length", nonJSONResponse.GetContentLength())
-				//rw.Header().Set("Accept-Ranges", "bytes")
-				content = nonJSONResponse.GetContent()
+				nonJSONResponse, ok := data.(NonJSONData)
+				if ok {
+					isData = true
+					rw.Header().Set("Content-Type", nonJSONResponse.GetContentType())
+					//rw.Header().Set("Content-Length", nonJSONResponse.GetContentLength())
+					//rw.Header().Set("Accept-Ranges", "bytes")
+					content = nonJSONResponse.GetContent()
+				}
 			}
 		case http.MethodPost:
 			code, data = resource.Post(db, values, request, id, adj)
@@ -104,7 +106,7 @@ func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, res
 		default:
 			api.Abort(rw, 405)
 		}
-		if len(content) < 5 {
+		if !isData {
 			content, _ = json.Marshal(data)
 			//if err != nil && method != GET {
 			//	api.Abort(rw, 500)

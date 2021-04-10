@@ -38,7 +38,7 @@ func (api *API) Init(db *gorm.DB, conf *config.Config) {
 	api.addStandard(db, standards.NewThread())
 	api.AddResource(db, &data.Brand{}, "/brands")
 	http.HandleFunc("/standards", api.returnStandardsLists())
-	api.AddNonJSONResource(db, image, "")
+	api.AddNonJSONResource(db, image, "/images")
 	fmt.Printf("Listening To %s:%d \n", conf.API.BindIP, conf.API.BindPort)
 	api.Start(conf.API.BindIP, conf.API.BindPort)
 }

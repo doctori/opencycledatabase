@@ -37,7 +37,7 @@ type Image struct {
 func (Image) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 	var img Image
 	if id == 0 {
-		return 500, "Could not GET All Images"
+		return 200, img.List(db)
 	}
 	err := db.First(&img, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -71,9 +71,11 @@ func (Image) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 	return 200, img
 
 }
+
 func (i Image) getContentType() string {
 	return i.ContentType
 }
+
 func (i Image) getContentLength() string {
 	return strconv.FormatInt(i.ContentLength, 10)
 }
@@ -114,7 +116,13 @@ func (Image) Post(db *gorm.DB, values url.Values, request *http.Request, id int,
 
 	return 200, img
 }
-
+func (Image) List(db *gorm.DB) (images []Image) {
+	result := db.Find(&images)
+	if result.Error != nil {
+		log.Printf("Could not list all images ! because %s", result.Error.Error())
+	}
+	return
+}
 func (i Image) save(db *gorm.DB) Image {
 	if i.ID == 0 {
 		oldi := new(Image)

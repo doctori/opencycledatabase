@@ -1,20 +1,24 @@
 <template>
 <v-card>
   <v-form fluid>
-    <v-row align="center"  >
-      <v-col cols="12" id="standardType">
-      Standard Type : 
-      <v-autocomplete v-model="std.type" v-on:change="getStandardDefintion(std.type)"
-        :items="stdTypes" outlined dense chips
-      ></v-autocomplete>
-    </v-col>
+    <v-row >
+      <v-col>
+        <h2> Standard :{{std.name}}</h2>
+      </v-col>
     </v-row>
-    <div class="standard-create" id="standard-create">
-      <h2> Standard Name </h2>
-    <v-col id="standardName">
-      <v-text-field v-model="std.name" label="Standard Name" required>Name</v-text-field>
-    </v-col>
-    
+    <v-row class="standard-create" id="standard-create">
+      <v-col id="standardName">
+
+        <v-text-field v-model="std.name" label="Standard Name" required>Name</v-text-field>
+      </v-col>
+      <v-col id="standardType">
+        Standard Type : 
+        <v-autocomplete v-model="std.type" v-on:change="getStandardDefintion(std.type)"
+          :items="stdTypes" outlined dense chips
+        ></v-autocomplete>
+      </v-col>
+    </v-row>
+
     <!-- let's display the common fields for all standards -->
     <!-- let's list all the countries !! -->
     <v-row>
@@ -31,6 +35,7 @@
         </v-autocomplete>
       </v-col>
     </v-row>
+    
     <div v-if="loading">
       Loading ...
     </div>
@@ -72,7 +77,6 @@
     <div id="save-error" v-if="saveError">
       {{saveError}}
     </div>
-  </div>
   </v-form>
 </v-card>
 </template>

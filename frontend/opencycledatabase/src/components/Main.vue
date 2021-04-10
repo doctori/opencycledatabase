@@ -14,7 +14,7 @@
           </v-col>
       </v-row>
       </v-container>
-      
+      <router-view></router-view>
       <v-container>
         <v-row>
           <v-col >
@@ -22,13 +22,28 @@
               Create Standard
             </v-btn>
           </v-col>
+          <v-col>
+            <v-btn id="createBrand" v-on:click="enableCreateBrand()">
+              Create Brand
+            </v-btn>
+          </v-col>
         </v-row>
         <v-row>
           <v-col v-if="createStandard" class="create-standard">
             <standard-create :standards="standards"/>
           </v-col>
+
         </v-row>
+        <v-row>
+          <v-col v-if="createBrand" class="create-brand">
+            <brand-create/>
+          </v-col>
+
+        </v-row>
+
       </v-container>
+
+      
    </v-main>
 
 </div>
@@ -42,11 +57,13 @@
 import StandardDisplay from './StandardDisplay.vue';
 import axios from 'axios'
 import StandardCreate from './StandardCreate.vue';
+import BrandCreate from './BrandCreate.vue';
 export default {
   name: 'Main',
   components: {
     'standard-display':StandardDisplay,
-    'standard-create': StandardCreate
+    'standard-create': StandardCreate,
+    'brand-create': BrandCreate,
   },
   data(){
     return{
@@ -55,6 +72,7 @@ export default {
       post: null,
       error: null,
       createStandard: false,
+      createBrand: false,
       standards: []
     }
   },
@@ -68,11 +86,16 @@ export default {
   },
   methods: {
   enableCreateStandard(){
-    this.createStandard = !this.createStandard
+    this.createStandard = !this.createStandard;
+    this.createBrand = false
+  },
+  enableCreateBrand(){
+    this.createBrand = !this.createBrand;
+    this.createStandard = false;
   },
   fetchData(){
-    this.error = this.post = null
-    this.loading = true
+    this.error = this.post = null;
+    this.loading = true;
 
     axios
       .get("http://localhost:8080/components")
@@ -84,7 +107,7 @@ export default {
         console.log(error)
         this.error = error
       })
-      .finally(()=> this.loading = false)
+      .finally(()=> this.loading = false);
     }
   }
 
