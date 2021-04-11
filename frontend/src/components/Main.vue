@@ -1,52 +1,46 @@
 <template>
-<div>
-    <v-main>
-      <v-container >
-        <v-row>
-          <div v-if="loading" class="loading">
-            Loading...
-          </div>
-          <div v-if="error" class="error">
-            {{ error.message }}
-          </div>
-          <v-col v-if="standards && !loading" class="content">
-            <standard-display :standards="standards"/>
-          </v-col>
+  <v-container>
+    <v-container v-if="loading" class="loading">
+        Loading...
+    </v-container>
+    <v-container v-if="error" class="error">
+          {{ error.message }}
+    </v-container>
+    <v-container>
+      <v-row>
+        <v-col v-if="standards && !loading" class="content">
+          <standard-display :standards="standards"/>
+        </v-col>
       </v-row>
-      </v-container>
-      <router-view></router-view>
-      <v-container>
-        <v-row>
-          <v-col >
-            <v-btn id="createStandard" v-on:click="enableCreateStandard()">
-              Create Standard
-            </v-btn>
-          </v-col>
-          <v-col>
-            <v-btn id="createBrand" v-on:click="enableCreateBrand()">
-              Create Brand
-            </v-btn>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col v-if="createStandard" class="create-standard">
-            <standard-create :standards="standards"/>
-          </v-col>
+    </v-container>
 
-        </v-row>
-        <v-row>
-          <v-col v-if="createBrand" class="create-brand">
-            <brand-create/>
-          </v-col>
+    <v-container>
+      <v-row>
+        <v-col >
+          <v-btn id="createStandard" v-on:click="enableCreateStandard()">
+            Create Standard
+          </v-btn>
+        </v-col>
+        <v-col>
+          <v-btn id="createBrand" v-on:click="enableCreateBrand()">
+            Create Brand
+          </v-btn>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col v-if="createStandard" class="create-standard">
+          <standard-create :standards="standards"/>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col v-if="createBrand" class="create-brand">
+          <brand-create/>
+        </v-col>
+      </v-row>
 
-        </v-row>
+    </v-container>
 
-      </v-container>
-
-      
-   </v-main>
-
-</div>
+  </v-container>
 </template>
 
 

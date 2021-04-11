@@ -14,7 +14,7 @@
       <v-col id="standardType">
         Standard Type : 
         <v-autocomplete v-model="std.type" v-on:change="getStandardDefintion(std.type)"
-          :items="stdTypes" outlined dense chips
+          :items="stdTypes" outlined dense
         ></v-autocomplete>
       </v-col>
     </v-row>

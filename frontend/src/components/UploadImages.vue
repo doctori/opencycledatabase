@@ -58,10 +58,7 @@ export default {
             })
             .then((response) => {
                 this.message = response.data.message;
-                return UploadImage.getImages()
-            })
-            .then((files) => {
-                this.fileInfos = files.data
+                this.$emit('image-uploaded',response.data.ID)
             })
             .catch(()=> {
                 this.progress = 0;

@@ -1,10 +1,7 @@
 package data
 
 import (
-	"bytes"
 	"errors"
-	"image"
-	"image/jpeg"
 	"io"
 	"log"
 	"mime"
@@ -15,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nfnt/resize"
 	"gorm.io/gorm"
 )
 
@@ -51,23 +47,13 @@ func (Image) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 		return 404, "File Not Found"
 	}
 	// Detect Mime Type
-	//buff := make([]byte, 512)
-	//_, err = file.ReadAt(buff, 0)
-	//img.ContentType = http.DetectContentType(buff)
-	img.ContentType = "image/jpeg"
-
-	decodedImg, _, err := image.Decode(file)
-	file.Close()
+	buff := make([]byte, 512)
+	_, err = file.ReadAt(buff, 0)
 	if err != nil {
 		log.Panic(err)
 	}
-	resizedImg := resize.Resize(600, 0, decodedImg, resize.Lanczos3)
-	var buffer bytes.Buffer
-	jpeg.Encode(&buffer, resizedImg, nil)
-
-	img.Content = buffer.Bytes()
-	img.ContentLength = int64(buffer.Len())
-
+	img.ContentType = http.DetectContentType(buff)
+	log.Printf("ContentType is : %s", img.ContentType)
 	return 200, img
 
 }

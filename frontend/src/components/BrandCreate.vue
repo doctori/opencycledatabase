@@ -36,7 +36,7 @@
       </v-col>
       <v-col>
         Image
-        <upload-image></upload-image>
+        <upload-image v-on:image-uploaded="setBrandImage"></upload-image>
       </v-col>
     </v-row>
     <v-row>
@@ -108,6 +108,10 @@ export default {
     includeFields(field){
       return !this.ignoredFields.includes(field)
 
+    },
+    setBrandImage(image){
+      console.log("this brand Image ID is "+image)
+      this.brand.Image=image
     },
     submitBrand(){
       axios.post('/brands',this.brand)

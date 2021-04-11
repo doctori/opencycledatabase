@@ -22,7 +22,8 @@ func (api *API) Init(db *gorm.DB, conf *config.Config) {
 	bike := new(data.Bike)
 	component := new(data.Component)
 	image := new(data.Image)
-
+	// static content
+	api.addStaticDir("./upload")
 	// TODO : use Gorilla Mux ??
 	api.AddResource(db, bike, "/bikes")
 	api.AddResource(db, component, "/components")
@@ -41,6 +42,35 @@ func (api *API) Init(db *gorm.DB, conf *config.Config) {
 	api.AddNonJSONResource(db, image, "/images")
 	fmt.Printf("Listening To %s:%d \n", conf.API.BindIP, conf.API.BindPort)
 	api.Start(conf.API.BindIP, conf.API.BindPort)
+}
+
+type StatusRespWr struct {
+	http.ResponseWriter // We embed http.ResponseWriter
+	status              int
+}
+
+func (w *StatusRespWr) WriteHeader(status int) {
+	w.status = status // Store the status for our own use
+	w.ResponseWriter.WriteHeader(status)
+}
+func wrapHandler(h http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		srw := &StatusRespWr{ResponseWriter: w}
+		h.ServeHTTP(srw, r)
+		if srw.status >= 400 { // 400+ codes are the error codes
+			log.Printf("Error status code: %d when serving path: %s",
+				srw.status, r.RequestURI)
+		}
+	}
+}
+func (api *API) addStaticDir(directory string) {
+	// static content server
+	fs := http.FileServer(http.Dir(directory))
+
+	directory = strings.TrimLeft(directory, ". ")
+	log.Printf("Adding static directory %s", directory)
+	http.Handle("/upload/", wrapHandler(http.StripPrefix(directory, fs)))
+
 }
 
 // AddStandard add '/standards/%standardType%/ path to the http Handler
