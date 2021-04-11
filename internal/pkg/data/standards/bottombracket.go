@@ -13,7 +13,7 @@ import (
 type BottomBracket struct {
 	Standard `gorm:"embedded" formType:"-"`
 	// Thread definition (if needed)
-	ThreadID int    `json:"-"`
+	ThreadID int    `json:"-" fromType:"-"`
 	Thread   Thread `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" formType:"nested"`
 	// IsThreaded : true if  it's a threaded bottom bracket
 	IsThreaded bool `json:"isThreaded" formType:"bool"`

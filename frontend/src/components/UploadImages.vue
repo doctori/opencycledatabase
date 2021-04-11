@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import UploadImage from "../services/UploadImagesServices";
+import ImagesService from "../services/ImagesService";
 
 export default {
     name: 'upload-images',
@@ -41,7 +41,7 @@ export default {
         };
     },
     mounted(){
-        UploadImage.getImages().then(response=>{
+        ImagesService.getImages().then(response=>{
             this.fileInfos = response.data;
         })
     },
@@ -53,7 +53,7 @@ export default {
                 return;
             }
             this.message = "";
-            UploadImage.upload(this.currentFile, (event) => {
+            ImagesService.upload(this.currentFile, (event) => {
                 this.progress = Math.round((100*event.loaded)/event.total);
             })
             .then((response) => {

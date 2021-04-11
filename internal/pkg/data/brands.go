@@ -61,7 +61,7 @@ func (Brand) Post(db *gorm.DB, values url.Values, request *http.Request, id int,
 		err := decoder.Decode(&brand)
 		if err != nil {
 			log.Println(err)
-			return 500, "Internal Error"
+			return 500, err.Error()
 		}
 		log.Println(brand)
 		brand = brand.save(db)

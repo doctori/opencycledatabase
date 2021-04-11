@@ -4,7 +4,7 @@
     <div class="brand-create" id="standard-create">
       <h2> Brand : {{brand.name}}</h2>
     <v-col id="brandName">
-      <v-text-field v-model="brand.name" label="Brand Name" required>Name</v-text-field>
+      <v-text-field v-model="brand.Name" label="Brand Name" required>Name</v-text-field>
     </v-col>
     
     <!-- let's display the common fields for all standards -->
@@ -12,42 +12,43 @@
     <v-row>
       <v-col id="brandCountry">
         Country :
-        <v-autocomplete v-model="brand.country" label="country name" :items="countryList" item-text="name" item-value="alpha3Code" >
+        <v-autocomplete v-model="brand.Country" label="country name" :items="countryList" item-text="name" item-value="alpha3Code" >
         </v-autocomplete>
       </v-col>
     </v-row>
     <v-row>
       <v-col>
         Description
-          <v-textarea  v-model="brand.description" label="description">
+          <v-textarea  v-model="brand.Description" label="description">
           </v-textarea>
       </v-col>
     </v-row>
     <v-row>
       <v-col>
         Creation Year
-          <v-text-field type="number" v-model.number="brand.creationYear" label="Creation Year">
+          <v-text-field type="number" v-model.number="brand.CreationYear" label="Creation Year">
           </v-text-field>
       </v-col>
       <v-col>
         End Year
-          <v-text-field type="number" v-model.number="brand.endYear" label="End Year">
+          <v-text-field type="number" v-model.number="brand.EndYear" label="End Year">
           </v-text-field>
       </v-col>
       <v-col>
         Image
-        <upload-image v-on:image-uploaded="setBrandImage"></upload-image>
+        <upload-image v-if="!brand.Image" v-on:image-uploaded="setBrandImage"></upload-image>
+        <v-img eager=true :src="'http://localhost:8081:/'+imgSrc"></v-img>
       </v-col>
     </v-row>
     <v-row>
       <v-col>
         Wikipedia link
-          <v-text-field  v-model="brand.wikiHref" label="Wiki Link">
+          <v-text-field  v-model="brand.WikiHref" label="Wiki Link">
           </v-text-field>
       </v-col>
       <v-col>
         Official website link
-          <v-text-field v-model="brand.href" label="End Year">
+          <v-text-field v-model="brand.Href" label="End Year">
           </v-text-field>
       </v-col>
     </v-row>
@@ -73,36 +74,46 @@
 </template>
 
 <script>
-import axios from 'axios'
-import UploadImage from './UploadImages'
+import http from '../../common/http-common'
+import UploadImage from './../UploadImages'
+import ImageService from '../../services/ImagesService'
 export default {
   name: 'BrandCreate',
   components:{
     'upload-image' : UploadImage,
   },
+  props: {
+    brand: Object
+  },
   data : function(){
     return {
-      'brand':{
-        'name':'',
-        'type':'',
-        // TODO : get Country list
-        'country':'',
-        // TODO : get brand
-        'brand':''
-      },
       'saved': false,
       'saveError': null,
       'countryList':[],
       'loading':false,
       'error': null,
+      'imgSrc': "",
+      'imgID': 0,
+    }
+  },  
+  updated: function(){
+
+    if (this.brand.Image != 0 && this.imgID != this.brandInput.Image){
+      this.imgID = this.brandInput.Image
+      this.imgSrc = ImageService.getImagePath(this.imgID)
+    }else{
+      this.imgSrc = undefined
     }
   },
   mounted: function (){
-    axios
+    http
         .get("https://restcountries.eu/rest/v2/all")
         .then(response => (
           this.countryList = response.data
         ))
+      if (this.brand.Image != 0){
+        this.imgSrc = ImageService.getImagePath(this.imgID)
+      }
   },
   methods: {
     includeFields(field){
@@ -114,15 +125,29 @@ export default {
       this.brand.Image=image
     },
     submitBrand(){
-      axios.post('/brands',this.brand)
-      .then(result => (
-        this.brand = result.data,
-        this.saved = true
-      ))
-      .catch(error =>{
-        console.log(error)
-        this.saveError = error
-      })
+      if (this.brand.ID != 0){
+        console.log("we'll update the Brand "+this.brand.Name)
+        http.post('/brands/'+this.brand.ID,this.brand)
+        .then(result => (
+          this.brand = result.data,
+          this.saved = true
+        ))
+        .catch(error =>{
+          console.log(error)
+          this.saveError = error
+        })
+      }else{
+        http.post('/brands',this.brand)
+        .then(result => (
+          this.brand = result.data,
+          this.saved = true
+        ))
+        .catch(error =>{
+          console.log(error)
+          this.saveError = error
+        })
+
+      }
     }
   }
 

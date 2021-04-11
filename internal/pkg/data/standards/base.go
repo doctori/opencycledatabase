@@ -184,7 +184,7 @@ func GetAll(db *gorm.DB, page string, perPage string, standardType StandardInt) 
 // Post will save the BBStandard
 func (Standard) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string, standardType StandardInt) (int, interface{}) {
 	body := request.Body
-	fmt.Printf("Received args : \n\t %+v\n", values)
+	log.Printf("Received args : \n\t %+v\n", values)
 	decoder := json.NewDecoder(body)
 	log.Println(reflect.TypeOf(standardType))
 	standard := reflect.New(reflect.TypeOf(standardType).Elem()).Interface()

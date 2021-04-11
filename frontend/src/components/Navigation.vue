@@ -26,9 +26,11 @@
             class="mb-5"
             cols="12"
           >
+          <router-link :to="{name:'Standards'}">
             <h2 class="headline font-weight-bold mb-5">
               Standards
             </h2>
+          </router-link>
 
           </v-col>
 
