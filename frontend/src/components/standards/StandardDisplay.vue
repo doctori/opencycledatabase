@@ -2,7 +2,7 @@
   <v-expansion-panels>
     <v-expansion-panel>
       <v-expansion-panel-header>
-        Standard List
+        {{$t('std.list-name')}}
       </v-expansion-panel-header>
       <v-expansion-panel-content>
     <v-row class="standard-display">

@@ -2,6 +2,7 @@ module.exports = {
   devServer: {
       proxy: 'http://localhost:8081',
   },
+
   chainWebpack: config => {
     config
         .plugin('html')
@@ -13,5 +14,14 @@ module.exports = {
 
   transpileDependencies: [
     'vuetify'
-  ]
+  ],
+
+  pluginOptions: {
+    i18n: {
+      locale: 'en',
+      fallbackLocale: 'fr',
+      localeDir: 'locales',
+      enableInSFC: true
+    }
+  }
 }

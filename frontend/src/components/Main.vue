@@ -6,7 +6,11 @@
     <v-container v-if="error" class="error">
           {{ error.message }}
     </v-container>
-
+  <v-container>
+    <h4>Welcome to the Open Cycle database</h4>
+    You should find here all the component and compatibility matrix, 
+    that should help you know what components are compatible with your bike. (soon)
+  </v-container>
   </v-container>
 </template>
 

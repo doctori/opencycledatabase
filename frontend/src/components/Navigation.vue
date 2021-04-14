@@ -17,7 +17,7 @@
           </v-col>
           <v-col >
             <p class="subheading font-weight-regular">
-              Welcome to the Open Cycling Database,
+              {{ $t("messages.welcome_nav") }}
 
             </p>
           </v-col>
