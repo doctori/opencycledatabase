@@ -11,17 +11,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/doctori/opencycledatabase/internal/pkg/data"
 	"gorm.io/gorm"
 )
 
-// Resource will define the generic API resource methods
-type Resource interface {
-	Get(db *gorm.DB, values url.Values, id int) (int, interface{})
-	Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{})
-	Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{})
-	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
-}
+// TODO : move to gorilla mux ...
 
+// Resource will define the generic API resource methods
 // NonJSONResource hold the files images and other objects
 type NonJSONResource interface {
 	Get(db *gorm.DB, values url.Values, id int) (int, interface{})
@@ -47,7 +43,7 @@ func (api *API) splitPath(path string, resourceType string) (id int, adj string)
 	// the index 0 of the splitted Path is "/"
 	// the index 1 is the resource type (can differ from the resourceType)
 	// the index 2 if exists is the resource id
-	// the index 3 if exiests is the adjective
+	// the index 3 if exists is the adjective
 	splittedPath := strings.Split(path, "/")
 	pathLength := len(splittedPath)
 	if pathLength >= 3 {
@@ -121,7 +117,7 @@ func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, res
 		rw.Write(content)
 	}
 }
-func (api *API) requestHandler(db *gorm.DB, resource Resource, resourceType string, isPrefixed bool) http.HandlerFunc {
+func (api *API) requestHandler(db *gorm.DB, resource data.Resource, resourceType string, isPrefixed bool) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
 
 		var data interface{}
@@ -161,7 +157,7 @@ func (api *API) requestHandler(db *gorm.DB, resource Resource, resourceType stri
 		log.Printf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
 		case http.MethodGet:
-			code, data = resource.Get(db, values, id)
+			code, data = resource.Get(db, values, id, adj)
 		case http.MethodPost:
 			code, data = resource.Post(db, values, request, id, adj)
 		case http.MethodPut:
@@ -209,7 +205,7 @@ func (api *API) returnStandardsLists() http.HandlerFunc {
 }
 
 // AddResource add path to the http Handler
-func (api *API) AddResource(db *gorm.DB, resource Resource, path string) {
+func (api *API) AddResource(db *gorm.DB, resource data.Resource, path string) {
 	// Retrieve the Type Name of the Resource (Bike, Component etc ...)
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
 	subPath := ""

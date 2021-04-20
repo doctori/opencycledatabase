@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	managedStandard []Resource
+	managedStandard []data.Resource
 )
 
 // Init will create the routes
@@ -40,6 +40,8 @@ func (api *API) Init(db *gorm.DB, conf *config.Config) {
 	api.AddResource(db, &data.Brand{}, "/brands")
 	http.HandleFunc("/standards", api.returnStandardsLists())
 	api.AddNonJSONResource(db, image, "/images")
+
+	// Once all standards have been routed, migrate their model
 	fmt.Printf("Listening To %s:%d \n", conf.API.BindIP, conf.API.BindPort)
 	api.Start(conf.API.BindIP, conf.API.BindPort)
 }
@@ -74,15 +76,17 @@ func (api *API) addStaticDir(directory string) {
 }
 
 // AddStandard add '/standards/%standardType%/ path to the http Handler
-func (api *API) addStandard(db *gorm.DB, resource Resource) {
+func (api *API) addStandard(db *gorm.DB, resource data.Resource) {
 
 	// Retrieve the Type Name of the Resource (Bike, Component etc ...)
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
 	managedStandard = append(managedStandard, resource)
 	path := fmt.Sprintf("/standards/%v", resourceType)
 	subPath := fmt.Sprintf("/standards/%v/", resourceType)
+	componentsPath := fmt.Sprintf("/standards/%v/components", resourceType)
 	log.Printf("adding path %v for resource %#v", path, resource)
 	http.HandleFunc(path, api.requestHandler(db, resource, resourceType, true))
 	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType, true))
+	http.HandleFunc(componentsPath, api.requestHandler(db, resource, resourceType, true))
 
 }

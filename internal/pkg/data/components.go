@@ -79,7 +79,7 @@ func (Component) Post(db *gorm.DB, values url.Values, request *http.Request, id 
 }
 
 // Get return a generic Component
-func (Component) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (Component) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
 
 	page, err := strconv.Atoi(values.Get("page"))
 	if err != nil {
@@ -90,11 +90,31 @@ func (Component) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) 
 	if err != nil {
 		perPage = defaultPerPage
 	}
+
 	var c Component
-	if values.Get("name") == "" && values.Get("search") == "" {
+	if id != 0 {
+		err := db.First(&c, id).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 404, "Component not found"
+		}
+		return 200, c
+	}
+	// FIXME : this is starting to look like a really wrong way of dealing with url values
+	if values.Get("name") == "" && values.Get("search") == "" && values.Get("standard") == "" {
 		return 200, c.getAll(db, page, perPage)
 	} else if values.Get("search") != "" {
 		return 200, c.search(db, page, perPage, values.Get("search"))
+	} else if values.Get("standard") != "" {
+		standard := values.Get("standard")
+		components := []Component{}
+		log.Printf("Standard filter is %s", standard)
+		err = db.Model(&Component{}).
+			Joins("INNER JOIN component_standards as cs ON components.id = cs.component_id AND cs.standard_id = ?", standard).
+			Find(&components).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 404, "Component not found"
+		}
+		return 200, components
 	}
 
 	log.Println(values.Get("name"))

@@ -23,8 +23,8 @@ func NewSpoke() *Spoke {
 }
 
 // Get Spoke return the requests Spoke Standards ID
-func (s *Spoke) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return s.Standard.Get(db, values, id, s)
+func (s *Spoke) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return s.Standard.Get(db, values, id, s, adj)
 }
 
 // Delete Spoke delete the requested Spoke standard ID

@@ -29,7 +29,7 @@
         elevation="4"
         v-on:click="changeCreateMode()"
         >
-          Create
+          {{ $t('messages.create') }}
         </v-btn>
    </v-col>
   </v-row>

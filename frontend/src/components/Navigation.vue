@@ -38,9 +38,12 @@
             class="mb-5"
             cols="12"
           >
+          <router-link
+            :to="{name: 'Components'}">
             <h2 class="headline font-weight-bold mb-5">
-              Components
+              {{ $t('messages.components')}}
             </h2>
+          </router-link>
           </v-col>
 
           <v-col

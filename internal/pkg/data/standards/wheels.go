@@ -23,8 +23,8 @@ func NewWheel() *Wheel {
 }
 
 // Get Wheel return the requests Wheel Standards ID
-func (w *Wheel) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return w.Standard.Get(db, values, id, w)
+func (w *Wheel) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return w.Standard.Get(db, values, id, w, adj)
 }
 
 // Delete Wheel delete the requested Wheel standard ID

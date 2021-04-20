@@ -25,8 +25,8 @@ func NewThread() *Thread {
 }
 
 // Get Thread return the requests Thread Standards ID
-func (t *Thread) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return t.Standard.Get(db, values, id, t)
+func (t *Thread) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return t.Standard.Get(db, values, id, t, adj)
 }
 
 // Delete Thread delete the requested Thread standard ID

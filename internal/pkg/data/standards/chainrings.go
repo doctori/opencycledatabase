@@ -32,8 +32,8 @@ func NewChainRing() *ChainRing {
 }
 
 // Get ChainRing return the requests ChainRing Standards ID
-func (cr *ChainRing) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return cr.Standard.Get(db, values, id, cr)
+func (cr *ChainRing) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return cr.Standard.Get(db, values, id, cr, adj)
 }
 
 // Delete ChainRing delete the requested ChainRing standard ID

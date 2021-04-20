@@ -33,8 +33,8 @@ func NewBottomBracket() *BottomBracket {
 }
 
 // Get BottomBracket return the requests BottomBracket Standards ID
-func (bb *BottomBracket) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return bb.Standard.Get(db, values, id, bb)
+func (bb *BottomBracket) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return bb.Standard.Get(db, values, id, bb, adj)
 }
 
 // Delete BottomBracket delete the requested BottomBracket standard ID

@@ -29,7 +29,16 @@ func InitDB(config *config.Config) *gorm.DB {
 	db.Logger.LogMode(logger.LogLevel(7))
 	db.AutoMigrate(&Image{}, &ComponentType{}, &Brand{}, &Component{}, &Bike{})
 	// Standards
-	db.AutoMigrate(&standards.BottomBracket{}, &standards.ChainRing{}, &standards.Crank{})
+	// FIXME : manage to use "managedresources" from api routes
+	db.AutoMigrate(
+		&standards.BottomBracket{},
+		&standards.ChainRing{},
+		&standards.Crank{},
+		&standards.FrontDerailleur{},
+		&standards.RearDerailleur{},
+		&standards.Headset{},
+		&standards.Hub{},
+	)
 	checkErr(err, "Create tables failed")
 
 	return db

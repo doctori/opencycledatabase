@@ -1,7 +1,32 @@
 {
-  "messages":{
-    "welcome_nav": "Hé Bonjour, et bienvenue sur l'Open Cycling Database !"
+  "messages": {
+    "welcome_nav": "Hé Bonjour, et bienvenue sur l'Open Cycling Database !",
+    "components": "Composants",
+    "submit": "Enregistrer",
+    "create": "Créer",
+    "edit": "Editer",
+    "view": "Visualiser",
+    "search": "Recherche"
   },
-  "std":
-    {"list-name": "Liste des standards"}
+  "components": {
+    "title": "Composants",
+    "name": "Composant",
+    "type": "Type de composant",
+    "standard": "Standard du composant",
+    "bottom_bracket": "Boitier de Pédalier",
+    "crank": "Pédalier",
+    "chainring": "Plateau",
+    "hub": "Moyeux",
+    "chain_ring": "Plateau",
+    "front_derailleur": "Derailleur avant",
+    "headset": "Jeu de direction",
+    "rear_derailleur": "Derailleur arriere",
+    "spoke": "Rayon",
+    "thread": "Pas de vis",
+    "wheel": "Roue",
+    "description": "Description"
+  },
+  "std": {
+    "list-name": "Liste des standards"
+  }
 }

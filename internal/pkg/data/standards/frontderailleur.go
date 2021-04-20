@@ -27,8 +27,8 @@ func NewFrontDerailleur() *FrontDerailleur {
 }
 
 // Get FrontDerailleur return the requests FrontDerailleur Standards ID
-func (rd *FrontDerailleur) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return rd.Standard.Get(db, values, id, rd)
+func (rd *FrontDerailleur) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return rd.Standard.Get(db, values, id, rd, adj)
 }
 
 // Delete FrontDerailleur delete the requested FrontDerailleur standard ID

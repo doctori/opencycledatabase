@@ -1,8 +1,32 @@
 {
   "messages": {
-    "welcome_nav": "Welcome to the Open Cycling Database"
+    "welcome_nav": "Welcome to the Open Cycling Database",
+    "components": "Components",
+    "submit": "Submit",
+    "create": "Create",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search"
   },
-  "std":{
+  "components": {
+    "title": "Components",
+    "name": "Component",
+    "type": "Component Type",
+    "standard": "Component Standard",
+    "bottom_bracket": "Bottom Bracket",
+    "crank": "Crank",
+    "chain_ring": "Chainring",
+    "hub": "Hub",
+    "headset": "HeadSet",
+    "front_derailleur": "Front Derailleur",
+    "rear_derailleur": "Rear Derailleur",
+    "wheel": "Wheel",
+    "spoke": "Spoke",
+    "thread": "Thread",
+    "chainring": "",
+    "description": "Description"
+  },
+  "std": {
     "list-name": "Standard List"
   }
 }

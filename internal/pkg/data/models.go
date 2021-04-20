@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/json"
 	"errors"
+	"io"
 
 	// import png support
 	_ "image/png"
@@ -18,6 +19,13 @@ import (
 )
 
 const defaultPerPage int = 30
+
+type Resource interface {
+	Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{})
+	Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{})
+	Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{})
+	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
+}
 
 // ComponentType is the defintion of the type of bike component
 type ComponentType struct {
@@ -106,7 +114,7 @@ func GetAllBikes(db *gorm.DB, page string, perPage string) interface{} {
 }
 
 // Get Bike will return the request bike struct
-func (Bike) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (Bike) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
 	page := values.Get("page")
 	perPage := values.Get("per_page")
 	/*if values.Get("name") == "" {
@@ -166,6 +174,7 @@ func (Bike) Post(db *gorm.DB, values url.Values, request *http.Request, id int, 
 				components = append(components, component)
 			}
 		}
+		bike.Components = components
 		bike.save(db)
 	}
 	return 200, bike

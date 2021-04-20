@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -58,18 +57,6 @@ func (Image) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 
 }
 
-func (i Image) getContentType() string {
-	return i.ContentType
-}
-
-func (i Image) getContentLength() string {
-	return strconv.FormatInt(i.ContentLength, 10)
-}
-
-func (i Image) getContent() []byte {
-	return i.Content
-}
-
 // Post saves the images to the "upload" directory (shouldn't it go to S3 ? )
 func (Image) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
 	uploadFolder := "upload/"
@@ -81,6 +68,9 @@ func (Image) Post(db *gorm.DB, values url.Values, request *http.Request, id int,
 		multipartReader := multipart.NewReader(request.Body, params["boundary"])
 		// Should Build buffer and Write it at the end (loop thour the nextpart !)
 		partReader, err := multipartReader.NextPart()
+		if err != nil {
+			log.Printf("Whololo could not read the multiplart form submission because %s", err)
+		}
 		fileName := partReader.FileName()
 		filePath := uploadFolder + fileName
 		file, err := os.Create(filePath)

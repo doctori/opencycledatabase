@@ -28,7 +28,7 @@ type StandardInt interface {
 	//	GetType() string
 	//	Get() string
 	IsNul() bool
-	Get(db *gorm.DB, values url.Values, id int) (int, interface{})
+	Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{})
 	Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{})
 	Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{})
 	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
@@ -134,7 +134,7 @@ func GetFormFields(s StandardInt) map[string]FieldForm {
 }
 
 // Get Standard return the requests Standards (given the type of standard requested)
-func (Standard) Get(db *gorm.DB, values url.Values, id int, standardType StandardInt) (int, interface{}) {
+func (Standard) Get(db *gorm.DB, values url.Values, id int, standardType StandardInt, adj string) (int, interface{}) {
 	log.Printf("having Get for standard [%#v] with ID : %d", standardType, id)
 	page := values.Get("page")
 	perPage := values.Get("per_page")

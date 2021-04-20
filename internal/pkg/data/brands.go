@@ -26,7 +26,7 @@ type Brand struct {
 }
 
 // Get will return the asked Brand
-func (Brand) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (Brand) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
 
 	if id == 0 {
 		var brands []Brand

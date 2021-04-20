@@ -28,8 +28,8 @@ func NewCrank() *Crank {
 }
 
 // Get Crank return the requests Crank Standards ID
-func (c *Crank) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return c.Standard.Get(db, values, id, c)
+func (c *Crank) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return c.Standard.Get(db, values, id, c, adj)
 }
 
 // Delete Crank delete the requested Crank standard ID

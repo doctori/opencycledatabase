@@ -27,8 +27,8 @@ func NewHeadset() *Headset {
 }
 
 // Get Headset return the requests Headset Standards ID
-func (rd *Headset) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return rd.Standard.Get(db, values, id, rd)
+func (rd *Headset) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return rd.Standard.Get(db, values, id, rd, adj)
 }
 
 // Delete Headset delete the requested Headset standard ID

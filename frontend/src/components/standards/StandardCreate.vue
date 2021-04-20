@@ -8,7 +8,6 @@
     </v-row>
     <v-row class="standard-create" id="standard-create">
       <v-col id="standardName">
-
         <v-text-field v-model="std.name" label="Standard Name" required>Name</v-text-field>
       </v-col>
       <v-col id="standardType">

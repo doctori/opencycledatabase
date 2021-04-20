@@ -32,8 +32,8 @@ func NewHub() *Hub {
 }
 
 // Get Hub return the requests Hub Standards ID
-func (h *Hub) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return h.Standard.Get(db, values, id, h)
+func (h *Hub) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+	return h.Standard.Get(db, values, id, h, adj)
 }
 
 // Delete Hub delete the requested Hub standard ID
