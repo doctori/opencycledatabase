@@ -20,43 +20,20 @@ type Component struct {
 	Name        string `gorm:"uniqueIndex:component_uniqueness"`
 	Brand       Brand
 	BrandID     int `json:"-" gorm:"uniqueIndex:component_uniqueness"`
-	Type        ComponentType
-	TypeID      int `json:"-"`
 	Description string
 	Standards   []standards.Standard `gorm:"many2many:component_standards"`
 	Images      []Image              `gorm:"many2many:component_images"`
 	Year        string               `gorm:"uniqueIndex:component_uniqueness"`
 	PutNotSupported
-	DeleteNotSupported
 }
 
 // ComponentInt : the standard COmponent interface that needs to complies to in order to be a component
 type ComponentInt interface {
 	GetName() string
 	GetBrand() Brand
-	GetType() ComponentType
 	GetDescription() string
 	GetStandards() []standards.StandardInt
 	GetImages() []Image
-}
-
-func (ct ComponentType) save(db *gorm.DB) ComponentType {
-	if ct.ID == 0 {
-		oldct := new(ComponentType)
-		db.Where("name = ?", oldct.Name).First(&oldct)
-		if oldct.Name == "" {
-			log.Println("Recording the New Component type")
-			db.Create(&ct)
-		} else {
-			log.Println("Updating The Existing Component Type")
-			db.Model(&oldct).Updates(&ct)
-			ct = *oldct
-			log.Printf("Saving Component type %#v", ct)
-		}
-	} else {
-		db.Save(&ct)
-	}
-	return ct
 }
 
 // Post will save the component in database
@@ -129,6 +106,19 @@ func (Component) Get(db *gorm.DB, values url.Values, id int, adj string) (int, i
 	return 200, c
 }
 
+func (Component) Delete(db *gorm.DB, value url.Values, id int) (int, interface{}) {
+
+	if id == 0 {
+		return 400, "Component ID required"
+	}
+	err := db.Delete(&Component{}, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return 404, "Component not found"
+	}
+	log.Printf("Component is ID %d has been removed", id)
+	return 201, "Component Removed"
+}
+
 func (Component) search(db *gorm.DB, page int, perPage int, filter string) (components []Component) {
 	filter = fmt.Sprintf("%%%s%%", filter)
 	db.Preload("Standards").
@@ -151,16 +141,12 @@ func (c Component) save(db *gorm.DB) (Component, error) {
 	if c.ID == 0 {
 		oldc := new(Component)
 		db.Where(c.Brand).First(&c.Brand)
-		db.Where(c.Type).First(&c.Type)
 
 		if c.Brand.ID != 0 {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
+			log.Printf("Looking for : name = %v AND brand_id = %v AND year = %v", c.Name, c.Brand.ID, c.Year)
 			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
-		} else if c.Type.ID != 0 {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
-			db.Preload("Standards").Preload("Type", "id = ?", c.Type.ID).Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		} else {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND type_id = %v AND year = %v", c.Name, c.Brand.ID, c.Type.ID, c.Year)
+			log.Printf("Looking for : name = %v AND brand_id = %v AND year = %v", c.Name, c.Brand.ID, c.Year)
 			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		}
 		log.Println(oldc)
@@ -180,13 +166,11 @@ func (c Component) save(db *gorm.DB) (Component, error) {
 				}
 			}
 			c.Brand = c.Brand.save(db)
-			c.Type = c.Type.save(db)
 			db.Model(&oldc).Updates(&c)
 			c = *oldc
 		}
 	} else {
 		// Maybe Save nested object independantly ?
-		c.Type = c.Type.save(db)
 		c.Brand = c.Brand.save(db)
 		db.Save(&c)
 	}

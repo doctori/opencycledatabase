@@ -27,7 +27,7 @@ func InitDB(config *config.Config) *gorm.DB {
 	// Debug Mode
 	db.Debug()
 	db.Logger.LogMode(logger.LogLevel(7))
-	db.AutoMigrate(&Image{}, &ComponentType{}, &Brand{}, &Component{}, &Bike{})
+	db.AutoMigrate(&Image{}, &Brand{}, &Component{}, &Bike{})
 	// Standards
 	// FIXME : manage to use "managedresources" from api routes
 	db.AutoMigrate(

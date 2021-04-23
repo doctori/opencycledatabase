@@ -8,9 +8,6 @@
     </v-col>
   </v-row>
   <v-row>
-    <v-col cols="1">
-     <h3> {{ $t('messages.search')}} : </h3>
-    </v-col>
     <v-col cols="2">
       <v-autocomplete v-model="selectedType"
         v-on:change="setSelectedType(selectedType)"
@@ -20,8 +17,10 @@
         :label="$t('components.type')"
         dense
       ><template slot="item"  slot-scope="data">
-        
         {{ $t('components.'+camelToSnakeCase(data.item.Type)) }}
+        </template>
+        <template slot="selection" slot-scope="data">
+          {{ $t('components.'+camelToSnakeCase(data.item.Type)) }}
         </template>
       </v-autocomplete>
     </v-col>
@@ -36,12 +35,12 @@
       ></v-autocomplete>
     </v-col>
     <v-col cols="2">
-      <v-autocomplete v-model="componentID"
-        :items="components" 
-        v-on:change="setselectedComponent(componentID)"
+      <v-autocomplete v-model="selectedBrand"
+        :items="brands" 
+        v-on:change="setselectedBrand(selectedBrand)"
         item-text="Name" 
         item-value="ID" 
-        :label="$t('components.name')"
+        :label="$t('messages.brand')"
         dense
       ></v-autocomplete>
     </v-col>
@@ -51,7 +50,7 @@
       <v-btn 
       id="edit"
       elevation="4"
-      v-on:click="changeEditMode()"
+      v-on:click="search()"
       >
         {{editMessage}}
       </v-btn>
@@ -66,15 +65,14 @@
         </v-btn>
    </v-col>
   </v-row>
-  <component-display 
-    :componentInput="selectedComponent" 
-    v-if="componentDisplay && Object.keys(selectedComponent).length != 0"
+  <component-display v-for="(component) in components" :key="component.ID"
+    :componentInput="component" 
   />
   <component-edit 
     :componentInput="selectedComponent" 
     :typeInput="selectedType" 
-    :selectedType="selectedType"
     :standardInput="selectedStandard"
+    :brandInput="selectedBrand"
     v-if="componentEdit" 
   />
 
@@ -97,15 +95,16 @@ export default {
     return {
       typesList: [],
       standards: [],
+      brands: [],
       components : [],
       componentID : '',
       selectedType: Object,
       selectedComponent : Object,
       selectedStandard: Object,
+      selectedBrand: Object,
       componentDisplay: true,
       componentEdit: false,
-      brandCreate: false,
-      editMessage: this.$t('messages.edit')
+      editMessage: this.$t('messages.search')
     }
   },
   mounted(){
@@ -114,16 +113,31 @@ export default {
     .then(response =>{
       this.typesList = response.data
     })
+    // retrieve components (should we???)
     http.get("/components")
     .then(response => {
       this.components = response.data
-    }
-
-    )
+    });
+    // retrieve Brands
+    http.get("/brands")
+    .then(response=>{
+      this.brands = response.data
+    });
   },
   methods: {
     camelToSnakeCase(str){
       return UtilService.camelToSnakeCase(str);
+    },
+    search(){
+      console.log("Filter is standard : ["+this.selectedStandard+"] ")
+      console.log("Filter is Brand : ["+this.selectedBrand+"] ")
+      http.get("/components",{
+        params: {
+            standard: this.selectedStandard,
+            brand: this.selectedBrand,
+          }})
+      this.componentEdit = false
+  
     },
     changeEditMode(){
       this.componentDisplay = ! this.componentDisplay
@@ -141,6 +155,9 @@ export default {
       this.componentDisplay = !this.componentEdit
       
     },
+    setSelectedBrand(selectedBrand){
+      this.selectedBrand = selectedBrand
+    },
     setSelectedType(selectedType){
       this.selectedType = selectedType
       this.selectedStandard = 0
@@ -150,6 +167,7 @@ export default {
       })
     },
     setSelectedStandard(selectedStandard){
+      this.selectedStandard = selectedStandard
       http.get("/components",{
         params:{
           standard: selectedStandard
@@ -166,6 +184,9 @@ export default {
       })
       // TODO : catch errors
      },
+     setselectedBrand(selectedBrand){
+       this.selectedBrand=selectedBrand
+     }
   }
 }
 

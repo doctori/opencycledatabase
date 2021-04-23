@@ -1,38 +1,35 @@
 <template>
   <div>
-    <v-col v-if="componentInput.Image != 0">
-      Illustration : 
-      <v-img v-if="imgSrc" :src="imgSrc" max-width="350" :eager="true">
-      </v-img>
-    </v-col>
-    <v-col>
-      <h4>Description</h4>
-      <pre>
-      {{componentInput.Description}}
-      </pre>
-    </v-col>
     <v-row>
-      <v-col col="2">
-        Creation Year : {{ componentInput.CreationYear}}
-      </v-col>
-      <v-col col="2" v-if="componentInput.EndYear">
-        Closing Year : {{ componentInput.EndYear}}
+      <v-col cols="3">
+        <h2>{{ componentInput.Name }}</h2>
       </v-col>
       <v-col>
-        <a :href="componentInput.WikiHref">
-          Wiki 
-        </a><br/>
-        <a :href="componentInput.Href">
-          Site
-        </a>
-        
+        <v-img v-if="imgSrc" :src="imgSrc" max-width="350" :eager="true">
+        </v-img>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <h4>Description</h4>
+        <pre>
+        {{componentInput.Description}}
+        </pre>
+      </v-col>
+      <v-col cols="2">
+        <v-btn
+          id="delete"
+          elevation="4"
+          v-on:click="deleteComponent()">
+          {{ $t('messages.delete')}}
+        </v-btn>
       </v-col>
     </v-row>
   </div>
 </template>
 
 <script>
-
+import http from "../../common/http-common";
 import ImagesService from '../../services/ImagesService'
 export default {
   name: 'ComponentDisplay',
@@ -48,13 +45,19 @@ export default {
     this.imgSrc = ImagesService.getImagePath(this.imgID)
   },
   updated: function(){
-    console.log("updated")
     if (this.componentInput.Image != this.imgID){
       this.imgID = this.componentInput.Image
       this.imgSrc = ImagesService.getImagePath(this.imgID)
     }else{
       this.imgSrc = undefined
     }
+  },
+  methods: {
+    deleteComponent(){
+      http.delete('/components/'+this.componentInput.ID)
+      this.componentInput = null
+    }
   }
+
 }
 </script>

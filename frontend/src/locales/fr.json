@@ -6,7 +6,9 @@
     "create": "Créer",
     "edit": "Editer",
     "view": "Visualiser",
-    "search": "Recherche"
+    "search": "Recherche",
+    "brand": "Marque",
+    "delete": "Supprimer"
   },
   "components": {
     "title": "Composants",

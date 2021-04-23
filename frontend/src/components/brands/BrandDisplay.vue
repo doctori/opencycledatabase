@@ -2,7 +2,7 @@
   <div>
     <v-col v-if="brandInput.Image != 0">
       Illustration : 
-      <v-img v-if="imgSrc" :src="imgSrc" max-width="350" :eager="true">
+      <v-img :src="imgSrc" max-width="350" >
       </v-img>
     </v-col>
     <v-col>
@@ -34,6 +34,7 @@
 <script>
 
 import ImagesService from '../../services/ImagesService'
+
 export default {
   name: 'BrandDisplay',
   props: {'brandInput': Object },
@@ -47,11 +48,18 @@ export default {
     this.imgID = this.brandInput.Image
     this.imgSrc = ImagesService.getImagePath(this.imgID)
   },
-  updated: function(){
-    console.log("updated")
+  beforeUpdate: function(){
+    
     if (this.brandInput.Image != this.imgID){
+      console.log("New Image ! "+this.brandInput.Image)
       this.imgID = this.brandInput.Image
-      this.imgSrc = ImagesService.getImagePath(this.imgID)
+      ImagesService.getImagePath(this.brandInput.Image).then(result =>{
+        console.log(result)
+        this.imgSrc = result
+        console.log("image Source is : "+this.imgSrc);
+      })
+
+
     }else{
       this.imgSrc = undefined
     }

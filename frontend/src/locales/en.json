@@ -6,7 +6,9 @@
     "create": "Create",
     "edit": "Edit",
     "view": "View",
-    "search": "Search"
+    "search": "Search",
+    "brand": "Brand",
+    "delete": "Delete"
   },
   "components": {
     "title": "Components",

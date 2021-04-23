@@ -6,7 +6,7 @@
         <h2> {{ $t('components.name') }} </h2>
       </v-col>
       <v-col cols="9">
-        <v-text-field v-model="componentInput.name"
+        <v-text-field v-model="cpn.name"
                       :label="$t('components.name')" required>
           {{ $t('components.name') }}
         </v-text-field>
@@ -17,7 +17,7 @@
         {{ $t('components.description') }}
       </v-col >
       <v-col>
-        <v-textarea v-model="componentInput.description"
+        <v-textarea v-model="cpn.description"
                       :label="$t('components.description')">
             {{ $t('components.description') }}
         </v-textarea>
@@ -32,7 +32,7 @@
     </v-row>
     
     <div id="result">
-      {{ this.componentInput }}
+      {{ this.cpn }}
     </div>
 
     <div id="save-results" v-if="saved">
@@ -45,7 +45,7 @@
 </template>
 
 <script>
-//import http from '../../common/http-common'
+import http from '../../common/http-common'
 //import UploadImage from './../UploadImages'
 //import ImageService from '../../services/ImagesService'
 import UtilService from '../../services/UtilService'
@@ -58,7 +58,8 @@ export default {
     componentInput: Object,
     typeInput: String,
     standardInput: Number,
-    standardList: Array
+    standardList: Array,
+    brandInput: Number
   },
   data : function(){
     return {
@@ -69,16 +70,48 @@ export default {
       'error': null,
       'imgSrc': "",
       'imgID': 0,
+      'cpn': Object
     }
   },  
   beforeUpdate: function(){
     // we update the selected type if needed
     console.log(this.typeInput)
-    this.componentInput.Type = this.typeInput
+    this.cpn.Type = this.typeInput
+    this.cpn.Standard = this.standardInput
+    this.updateBrand(this.brandInput)
   },
   mounted: function (){
+    this.cpn = this.componentInput
   },
   methods: {
+    updateBrand(newBrandID){
+      if (newBrandID != this.cpn.Brand.ID){
+        http.get('/brands/'+newBrandID)
+        .then(result => {
+          this.cpn.Brand = result.data
+        });
+      }
+    },
+    updateStandard(newStandardID){
+      if (newStandardID != this.cpn.Standard.ID){
+        http.get('/standards/+newStandardID')
+        .then(result => {
+          this.cpn.Standard = result.data
+        });
+      }
+    },
+    submitComponent(){
+    http
+      .post('/components/',this.cpn)
+      .then(result => (
+        this.cpn = result.data,
+        this.saved = true
+      ))
+      .catch(error =>{
+        console.log(error)
+        this.saveError = error
+      })
+    },
     camelToSnakeCase(str){
       return UtilService.camelToSnakeCase(str);
     },

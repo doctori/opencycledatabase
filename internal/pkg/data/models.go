@@ -27,13 +27,6 @@ type Resource interface {
 	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
 }
 
-// ComponentType is the defintion of the type of bike component
-type ComponentType struct {
-	gorm.Model
-	Name        string
-	Description string
-}
-
 // Bike contains the defintion of the bike and all its attached components
 type Bike struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
