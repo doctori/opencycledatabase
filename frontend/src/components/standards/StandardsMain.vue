@@ -2,17 +2,24 @@
 <v-container>
   <v-row>
     <v-col cols="1">
-      Standards : 
+      Types : 
     </v-col>
     <v-col cols="6">
 
-      <v-autocomplete v-model="standardID"
-        :items="standards" 
-        v-on:change="setSelectedStandard(standardID)"
-        item-text="Name" 
-        item-value="ID" 
+      <v-autocomplete v-model="selectedType"
+        v-on:change="setSelectedType(selectedType)"
+        :items="standardTypes" 
+        item-text="Type" 
+        item-value="Type" 
+        :label="$t('components.type')"
         dense
-      ></v-autocomplete>
+      ><template slot="item"  slot-scope="data">
+        {{ $t('types.'+camelToSnakeCase(data.item)) }}
+        </template>
+        <template slot="selection" slot-scope="data">
+          {{ $t('types.'+camelToSnakeCase(data.item)) }}
+        </template>
+      </v-autocomplete>
     </v-col>
     <v-col cols="1" >
       <v-btn 
@@ -29,8 +36,13 @@
       </v-btn>
    </v-col>
   </v-row>
-  <standard-display :standardInput="selectedStandard" v-if="displayMode && Object.keys(selectedStandard).length != 0 "/>
-  <standard-edit :standardTypes="standardTypes" :standard="selectedStandard" v-if="editMode" />
+  <div id="standard-display" v-if="displayMode && standards.length != 0" >
+    <standard-display v-for="(standard) in standards" :standardInput="standard" :key="standard.ID" />
+  </div>
+  <div id="empty-display" v-else-if="displayMode">
+    {{ $t('messages.empty_set')}}
+  </div>
+  <standard-edit :standardTypeInput="selectedType" :standard="selectedStandard" v-if="editMode"/>
 
 </v-container>
 </template>
@@ -39,6 +51,7 @@
 import http from "../../common/http-common";
 import StandardDisplay from './StandardDisplay';
 import StandardCreate from './StandardCreate';
+import UtilService from '../../services/UtilService';
 export default {
   name: 'StandardsMain',
   components:{
@@ -50,6 +63,7 @@ export default {
       standards : [],
       standardTypes: [],
       standardID : '',
+      selectedType: "",
       selectedStandard : Object,
       displayMode: true,
       editMode: false,
@@ -60,10 +74,8 @@ export default {
   mounted(){
     http.get("/standards")
     .then(response => {
-      this.standards = response.data
-      console.log(this.standards)
       // build standard type list : 
-      this.standards.forEach(std => {
+      response.data.forEach(std => {
         this.standardTypes.push(std.Type)
       });
     }
@@ -72,9 +84,12 @@ export default {
     )
   },
   methods: {
+    camelToSnakeCase(str){
+      return UtilService.camelToSnakeCase(str);
+    },
     changeEditMode(){
-      this.displayMode = ! this.displayMode
       this.editMode = ! this.editMode
+      this.displayMode = ! this.editMode
       if (this.editMode){
         this.editMessage = "view"
       }else{
@@ -83,10 +98,18 @@ export default {
     },
     changeCreateMode(){
       // reset selected Brand
-      this.selectedStandard = new(Object)
       this.editMode = true
       this.displayMode = !this.brandEdit
       
+    },
+    setSelectedType(selectedType){
+      this.selectedStandard = 0
+      http.get("/standards/"+selectedType.toLowerCase())
+      .then(response =>{
+        this.standards = response.data
+        console.log(this.standards.length);
+      })
+
     },
     setSelectedStandard(standardID){
       http.get("/standards/"+standardID)

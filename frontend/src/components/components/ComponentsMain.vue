@@ -17,10 +17,10 @@
         :label="$t('components.type')"
         dense
       ><template slot="item"  slot-scope="data">
-        {{ $t('components.'+camelToSnakeCase(data.item.Type)) }}
+        {{ $t('types.'+camelToSnakeCase(data.item.Type)) }}
         </template>
         <template slot="selection" slot-scope="data">
-          {{ $t('components.'+camelToSnakeCase(data.item.Type)) }}
+          {{ $t('types.'+camelToSnakeCase(data.item.Type)) }}
         </template>
       </v-autocomplete>
     </v-col>

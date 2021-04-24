@@ -8,13 +8,11 @@
     "view": "View",
     "search": "Search",
     "brand": "Brand",
-    "delete": "Delete"
+    "delete": "Delete",
+    "empty_set": "No results",
+    "save": "Save"
   },
-  "components": {
-    "title": "Components",
-    "name": "Component",
-    "type": "Component Type",
-    "standard": "Component Standard",
+  "types": {
     "bottom_bracket": "Bottom Bracket",
     "crank": "Crank",
     "chain_ring": "Chainring",
@@ -25,10 +23,19 @@
     "wheel": "Wheel",
     "spoke": "Spoke",
     "thread": "Thread",
-    "chainring": "",
+    "chainring": "Chainring"
+  },
+  "components": {
+    "title": "Components",
+    "name": "Component",
+    "type": "Component Type",
+    "standard": "Component Standard",
     "description": "Description"
   },
   "std": {
     "list-name": "Standard List"
+  },
+  "standards": {
+    "new": "Create a new Standard"
   }
 }

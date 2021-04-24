@@ -12,9 +12,14 @@ import (
 
 type RearDerailleur struct {
 	Standard `gorm:"embedded" formType:"-"`
-	// TODO Specs ??
-	// CageLength hold the length of the cage in mm
+
+	// CageLength hold the length of the cage in mm (is this a standard defining key ?)
 	CageLength float32 `json:"CageLength" formType:"int"  formUnit:"mm"`
+	// IsDirectMount ? ref : https://wheelsmfg.com/blog/standard-mount-vs-direct-mount-derailleur-hangers.html
+	IsDirectMount bool `json:"IsDirectMount" formType:"bool"`
+	// IsShortCage will say if it's short or if its long (do we need a "longcage" option ? )
+	IsShortCage bool `json:"IsShortCage" formType:"bool"`
+	IsLongCage  bool `json:"IsLongCage" formType:"bool"`
 }
 
 func NewRearDerailleur() *RearDerailleur {

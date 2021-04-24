@@ -8,13 +8,11 @@
     "view": "Visualiser",
     "search": "Recherche",
     "brand": "Marque",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "empty_set": "Aucun résultats",
+    "save": "Sauvegarder"
   },
-  "components": {
-    "title": "Composants",
-    "name": "Composant",
-    "type": "Type de composant",
-    "standard": "Standard du composant",
+  "types": {
     "bottom_bracket": "Boitier de Pédalier",
     "crank": "Pédalier",
     "chainring": "Plateau",
@@ -25,10 +23,19 @@
     "rear_derailleur": "Derailleur arriere",
     "spoke": "Rayon",
     "thread": "Pas de vis",
-    "wheel": "Roue",
+    "wheel": "Roue"
+  },
+  "components": {
+    "title": "Composants",
+    "name": "Composant",
+    "type": "Type de composant",
+    "standard": "Standard du composant",
     "description": "Description"
   },
   "std": {
     "list-name": "Liste des standards"
+  },
+  "standards": {
+    "new": "Créer un nouveau Standard"
   }
 }

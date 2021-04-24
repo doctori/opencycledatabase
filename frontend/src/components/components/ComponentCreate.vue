@@ -73,7 +73,7 @@ export default {
       'cpn': Object
     }
   },  
-  beforeUpdate: function(){
+  updated: function(){
     // we update the selected type if needed
     console.log(this.typeInput)
     this.cpn.Type = this.typeInput

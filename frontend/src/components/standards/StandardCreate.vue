@@ -8,13 +8,11 @@
     </v-row>
     <v-row class="standard-create" id="standard-create">
       <v-col id="standardName">
-        <v-text-field v-model="std.name" label="Standard Name" required>Name</v-text-field>
+        <v-text-field v-model="std.Name" label="Standard Name" required>Name</v-text-field>
       </v-col>
       <v-col id="standardType">
         Standard Type : 
-        <v-autocomplete v-model="std.type" v-on:change="getStandardDefintion(std.type)"
-          :items="standardTypes" outlined dense
-        ></v-autocomplete>
+        {{ standardType }}
       </v-col>
     </v-row>
 
@@ -23,14 +21,14 @@
     <v-row>
       <v-col id="standardCountry">
         Country :
-        <v-autocomplete v-model="std.country" label="country name" :items="countryList" item-text="name" item-value="alpha3Code" >
+        <v-autocomplete v-model="std.Country" label="country name" :items="countryList" item-text="name" item-value="alpha3Code" >
         </v-autocomplete>
       </v-col>
 
       <!-- let's list the known brands -->
       <v-col id="standardBrand">
         Brand :
-        <v-autocomplete v-model="std.brand" label="brand name" :items="brands" item-text="Name" item-bind="ID">
+        <v-autocomplete v-model="std.Brand" label="brand name" :items="brands" item-text="Name" item-bind="ID">
         </v-autocomplete>
       </v-col>
     </v-row>
@@ -71,7 +69,13 @@
     <v-row>
       <v-col>
         <v-btn block elevation="3" key="submit" v-on:click="submitStandard()">
-          submit
+          {{ $t('messages.save') }}
+        </v-btn>
+
+      </v-col>
+      <v-col>
+        <v-btn block elevation="3" key="new" v-on:click="newStandard()">
+          {{ $t('standards.new') }}
         </v-btn>
       </v-col>
     </v-row>
@@ -101,9 +105,10 @@
 
 <script>
 import http from '../../common/http-common';
+import UtilService from '../../services/UtilService';
 export default {
   name: 'StandardCreate',
-  props: {'standardTypes':Array},
+  props: {'standardTypeInput':String},
   components:{
   },
   data : function(){
@@ -116,6 +121,7 @@ export default {
         // TODO : get brand
         'brand':''
       },
+      'standardType': String,
       'saved': false,
       'saveError': null,
       'brands': [],
@@ -127,22 +133,42 @@ export default {
       'stdTypes': [],
     }
   },
+  watch: {
+    standardTypeInput(val,oldVal){
+      console.log("INPUT HAS BEEN UPDATED");
+      if (val != oldVal){
+        this.standardType = val;
+        this.getStandards(this.standardType);
+        this.getStandardDefintion(this.standardType);
+      }
+      console.log(val);
+      console.log(oldVal);
+    }
+  },
   mounted: function (){
     http
-        .get("https://restcountries.eu/rest/v2/all")
-        .then(response => (
-          this.countryList = response.data
-        ))
+      .get("https://restcountries.eu/rest/v2/all")
+      .then(response => (
+        this.countryList = response.data
+      )
+    );
     http
       .get("/brands")
       .then(response => (
         this.brands = response.data
-      ))
-
+      )
+    );
+    this.standardType = this.standardTypeInput;
+    this.std.Type = this.standardTypeInput;
   },
   methods: {
     includeFields(field){
       return !this.ignoredFields.includes(field)
+    },
+    newStandard(){
+      this.std = Object();
+      this.std.Type = this.standardType;
+      this.getStandardDefintion(this.standardType);
     },
     getStandards(type){
       this.loading = true;
@@ -165,26 +191,28 @@ export default {
       })
     },
     getStandardDefintion(type){
-      this.loading = true;
-      http
-      .get("/standards/"+type.toLowerCase(),{
-        params: {
-          struct_only: true
-        }
-      })
-      .then(response => (
-        this.stdDefintion = response.data,
-        this.error = false
-         ))
-      .catch( error =>{
-        console.log(error)
-        this.error = error.message
-        this.stdDefintion = null
-      })
-      .finally(()=>{
-        this.loading = false
-        this.refreshNestedStd()
-      })
+      if (type != ""){
+        this.loading = true;
+        http
+        .get("/standards/"+type.toLowerCase(),{
+          params: {
+            struct_only: true
+          }
+        })
+        .then(response => (
+          this.stdDefintion = response.data,
+          this.error = false
+          ))
+        .catch( error =>{
+          console.log(error)
+          this.error = error.message
+          this.stdDefintion = null
+        })
+        .finally(()=>{
+          this.loading = false
+          this.refreshNestedStd()
+        })
+      }
     },
     refreshNestedStd(){
       for( const [,value] of Object.entries(this.stdDefintion)) {
@@ -201,7 +229,7 @@ export default {
     },
     submitStandard(){
       http
-      .post('/standards/'+this.std.type.toLowerCase(),this.std)
+      .post('/standards/'+this.std.Type.toLowerCase(),this.std)
       .then(result => (
         this.std = result.data,
         this.saved = true
@@ -210,7 +238,10 @@ export default {
         console.log(error)
         this.saveError = error
       })
-    }
+    },
+    camelToSnakeCase(str){
+      return UtilService.camelToSnakeCase(str);
+    },
   }
 
 }
