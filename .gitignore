@@ -7,4 +7,7 @@
 *.jl
 /opencycledatabase
 *.exe
+/ocd
+/upload
 conf/mainConfig.json
+frontend/.env
