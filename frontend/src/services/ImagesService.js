@@ -15,13 +15,19 @@ class ImagesService {
         return http.get("/images");
     }
     getImagePath(imageID){
-        return http.get('/images/'+imageID)
-        .then(response =>{
-          return "http://localhost:8081/"+response.data.Path
-          
-        });
-        
-        
+        if(imageID != undefined){
+            return http.get('/images/'+imageID)
+            .then(response =>{
+                if(response.data != undefined){
+                    console.log(response.data);
+                    return "http://localhost:8081/"+response.data.Path
+                }else{
+                    return undefined
+                }
+                    
+            
+            });
+        }
     }
 }
 

@@ -26,23 +26,19 @@
       id="edit"
       elevation="4"
       v-on:click="changeEditMode()"
+      :disabled="selectedType===''"
       >
-        {{editMessage}}
+        {{ $t('messages.' + editMessage ) }}
       </v-btn>
     </v-col>
-    <v-col cols="1">
-      <v-btn v-on:click="changeCreateMode()">
-        Create
-      </v-btn>
-   </v-col>
   </v-row>
   <div id="standard-display" v-if="displayMode && standards.length != 0" >
-    <standard-display v-for="(standard) in standards" :standardInput="standard" :key="standard.ID" />
+    <standard-display v-on:edit-standard="setEditMode" v-for="(standard) in standards" :standardInput="standard" :key="standard.ID"  />
   </div>
   <div id="empty-display" v-else-if="displayMode">
     {{ $t('messages.empty_set')}}
   </div>
-  <standard-edit :standardTypeInput="selectedType" :standard="selectedStandard" v-if="editMode"/>
+  <standard-edit :standardTypeInput="selectedType" :standardInput="selectedStandard" v-if="editMode"/>
 
 </v-container>
 </template>
@@ -67,7 +63,7 @@ export default {
       selectedStandard : Object,
       displayMode: true,
       editMode: false,
-      editMessage: "edit"
+      editMessage: "create"
       
     }
   },
@@ -95,6 +91,11 @@ export default {
       }else{
         this.editMessage = "edit"
       }
+    },
+    setEditMode(standard){
+      console.log(standard);
+      this.selectedStandard = standard;
+      this.changeEditMode();
     },
     changeCreateMode(){
       // reset selected Brand

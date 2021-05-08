@@ -1,17 +1,17 @@
 <template>
-<v-card>
-  <v-form fluid>
+<v-container class="light-grey lighten-5">
+  <v-form >
     <v-row >
       <v-col>
-        <h2> Standard :{{std.name}}</h2>
+        <h2> Standard : {{std.Name}}</h2>
       </v-col>
     </v-row>
-    <v-row class="standard-create" id="standard-create">
-      <v-col id="standardName">
+    <v-row class="standard-create" id="standard-create" >
+      <v-col id="standardName" lg4>
         <v-text-field v-model="std.Name" label="Standard Name" required>Name</v-text-field>
       </v-col>
-      <v-col id="standardType">
-        Standard Type : 
+      <v-col id="standardType" lg2>
+        {{ $t('messages.type')}}
         {{ standardType }}
       </v-col>
     </v-row>
@@ -19,20 +19,29 @@
     <!-- let's display the common fields for all standards -->
     <!-- let's list all the countries !! -->
     <v-row>
-      <v-col id="standardCountry">
-        Country :
-        <v-autocomplete v-model="std.Country" label="country name" :items="countryList" item-text="name" item-value="alpha3Code" >
+      <v-col id="standardCountry" lg1 offset-lg1>
+        <v-autocomplete v-model="std.Country" :label="$t('messages.country')" :items="countryList" item-text="name" item-value="alpha3Code" >
         </v-autocomplete>
       </v-col>
 
       <!-- let's list the known brands -->
-      <v-col id="standardBrand">
-        Brand :
-        <v-autocomplete v-model="std.Brand" label="brand name" :items="brands" item-text="Name" item-bind="ID">
+      <v-col id="standardBrand" lg1 offset-md-1>
+        <v-autocomplete v-model="std.Brand" :label="$t('messages.brand')" :items="brands" item-text="Name" item-bind="ID">
         </v-autocomplete>
       </v-col>
+      <v-col id="code" lg1 offset-md-1>
+        <v-text-field v-model="std.Code" :label="$t('messages.code')"></v-text-field>
+      </v-col>
     </v-row>
-    
+    <v-row>
+      <v-col cols="1"></v-col>
+      <v-col id="standardDescription" cols="8">
+        <v-textarea v-model="std.Description" :label="$t('messages.description')">
+
+        </v-textarea>
+      </v-col>
+    </v-row>
+
     <div v-if="loading">
       Loading ...
     </div>
@@ -100,7 +109,7 @@
       </div>
     </v-row>
   </v-form>
-</v-card>
+</v-container>
 </template>
 
 <script>
@@ -108,7 +117,9 @@ import http from '../../common/http-common';
 import UtilService from '../../services/UtilService';
 export default {
   name: 'StandardCreate',
-  props: {'standardTypeInput':String},
+  props: {
+    'standardTypeInput':String,
+    'standardInput':Object},
   components:{
   },
   data : function(){
@@ -134,15 +145,18 @@ export default {
     }
   },
   watch: {
+    standardInput(val,oldVal){
+      if(val != oldVal && val != this.std){
+        this.std = val;
+      }
+    },
     standardTypeInput(val,oldVal){
-      console.log("INPUT HAS BEEN UPDATED");
       if (val != oldVal){
         this.standardType = val;
         this.getStandards(this.standardType);
         this.getStandardDefintion(this.standardType);
       }
-      console.log(val);
-      console.log(oldVal);
+
     }
   },
   mounted: function (){
@@ -158,8 +172,13 @@ export default {
         this.brands = response.data
       )
     );
+
     this.standardType = this.standardTypeInput;
     this.std.Type = this.standardTypeInput;
+    if (this.standardInput !== 'undefined' && this.standardInput !== 'null'){
+      this.std = this.standardInput;
+    }
+    this.getStandardDefintion(this.standardType);
   },
   methods: {
     includeFields(field){

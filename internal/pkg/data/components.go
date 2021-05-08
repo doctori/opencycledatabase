@@ -77,7 +77,7 @@ func (Component) Get(db *gorm.DB, values url.Values, id int, adj string) (int, i
 		return 200, c
 	}
 	// FIXME : this is starting to look like a really wrong way of dealing with url values
-	if values.Get("name") == "" && values.Get("search") == "" && values.Get("standard") == "" {
+	if values.Get("name") == "" && values.Get("search") == "" && values.Get("standard") == "" && values.Get("type") == "" {
 		return 200, c.getAll(db, page, perPage)
 	} else if values.Get("search") != "" {
 		return 200, c.search(db, page, perPage, values.Get("search"))
@@ -90,6 +90,19 @@ func (Component) Get(db *gorm.DB, values url.Values, id int, adj string) (int, i
 			Find(&components).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 404, "Component not found"
+		}
+		return 200, components
+	} else if values.Get("type") != "" {
+		cType := values.Get("type")
+		components := []Component{}
+		log.Printf("Type filter is %s", cType)
+		err = db.Model(&Component{}).
+			Joins("INNER JOIN component_standards as cs ON components.id = cs.component_id").
+			Joins("INNER JOIN standards as std ON cs.standard_id = std.id AND std.type = ?", cType).
+			Find(&components).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Should we return a 404 on an empty result ? Gorm doesn't return RecordNotFound on a Find()
+			return 404, "Components not found"
 		}
 		return 200, components
 	}

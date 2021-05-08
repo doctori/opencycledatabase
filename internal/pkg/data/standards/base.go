@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -18,6 +20,9 @@ import (
 // this should be controlled by the API not the datamodel
 const defaultPerPage int = 30
 
+var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+
 // StandardInt interface define all the method that a standard need to have to be a
 // real standard struct
 type StandardInt interface {
@@ -25,7 +30,8 @@ type StandardInt interface {
 	//	GetCountry() string
 	GetCode() string
 	GetID() uint
-	//	GetType() string
+	SetID(id uint)
+	GetType() string
 	//	Get() string
 	IsNul() bool
 	Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{})
@@ -70,6 +76,10 @@ func (s *Standard) GetName() string {
 	return s.Name
 }
 
+func (s *Standard) GetType() string {
+	return s.Type
+}
+
 // GetCode return the Code
 func (s *Standard) GetCode() string {
 	return s.Code
@@ -91,6 +101,10 @@ func (Standard) Delete(db *gorm.DB, values url.Values, id int, standardType Stan
 	// TODO : implement Delete method
 	db.Delete(standard)
 	return 200, ""
+}
+
+func (s *Standard) SetID(id uint) {
+	s.ID = id
 }
 
 // GetFormFields will return the custom fields of a Standard to be used in the UI
@@ -148,11 +162,21 @@ func (Standard) Get(db *gorm.DB, values url.Values, id int, standardType Standar
 	if id == 0 {
 		return 200, GetAll(db, page, perPage, standardType)
 	}
-	err := db.Model(standardType).First(&standardType, id).Error
+
+	err := db.Model(standardType).Where("id = ?", id).Take(standardType).Error
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Println(err)
+		log.Println(standardType)
 		return 404, "Standard not found"
 	}
 	return 200, standardType
+}
+func ToSnakesCase(str string) string {
+
+	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
+	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	return strings.ToLower(fmt.Sprintf("%ss", snake))
 }
 
 // GetAll will returns al the standards
@@ -171,17 +195,15 @@ func GetAll(db *gorm.DB, page string, perPage string, standardType StandardInt) 
 	sType := reflect.TypeOf(standardType)
 	standards := reflect.New(reflect.SliceOf(sType)).Interface()
 
-	//var cr []ChainRing
 	log.Printf("%#v\n", standards)
 	db.Model(standardType).
 		Offset(ipage * iperPage).
 		Limit(iperPage).
 		Find(standards)
-	log.Printf("%#v\n", standards)
 	return standards
 }
 
-// Post will save the BBStandard
+// Post will save the Standard
 func (Standard) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string, standardType StandardInt) (int, interface{}) {
 	body := request.Body
 	log.Printf("Received args : \n\t %+v\n", values)
@@ -196,14 +218,54 @@ func (Standard) Post(db *gorm.DB, values url.Values, request *http.Request, id i
 	}
 
 	standardTyped := standard.(StandardInt)
+	stdStandard := Standard{
+		Type: standardTyped.GetType(),
+		Name: standardTyped.GetName(),
+	}
+	stdStandard.ID = standardTyped.GetID()
+	log.Printf("Saving : %#v", standardTyped)
 	if standardTyped.IsNul() {
 		return http.StatusBadRequest, "The object is null"
 	}
+	// we need to save the linked between the "standards" table and the typed standard table
+	err = stdStandard.save(db)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Could not save the standard : \n\t %s", err.Error())
+	}
+	standardTyped.SetID(stdStandard.ID)
 	err = standardTyped.Save(db)
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Could Not Save the Standard : \n\t %s", err.Error())
 	}
 	return http.StatusAccepted, standardTyped
+}
+
+func (s *Standard) save(db *gorm.DB) (err error) {
+	// If we have a new record we create it
+	if s.GetID() == 0 {
+		olds := new(Standard)
+		if errors.Is(db.Where("name = ? AND code = ?", s.GetName(), s.GetCode()).First(&olds).Error, gorm.ErrRecordNotFound) {
+			// We update our just created object in order to add it's associations ...
+			err = db.Save(s).Error
+			if err != nil {
+				return
+			}
+		} else {
+			err = db.Model(olds).Updates(s).Error
+
+			if err != nil {
+				return
+			}
+
+			db.Model(olds).First(s, olds.ID)
+		}
+	} else {
+		err = db.Save(s).Error
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 // Put updates Standard

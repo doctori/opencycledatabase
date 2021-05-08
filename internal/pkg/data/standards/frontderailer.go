@@ -11,6 +11,7 @@ import (
 )
 
 // FrontDerailleur, holds the specs for a Front Derailleur
+// ref : https://www.sheldonbrown.com/front-derailers.html
 type FrontDerailleur struct {
 	Standard `gorm:"embedded" formType:"-"`
 	// TODO Specs ??
@@ -18,6 +19,14 @@ type FrontDerailleur struct {
 	BrazedOn bool `formType:"bool"`
 	// CollarSize
 	CollarSize float32 `formType:"int" formUnit:"mm"`
+	// IsTriple if false : it's a double chainwheel only
+	IsTriple bool `formType:"bool"`
+	//IsTopPull
+	IsTopPull bool `formType:"bool"`
+	//IsBottomPull
+	IsBottomPull bool `formType:"bool"`
+	//IsSideSwing
+	IsSideSwing bool `formType:"bool"`
 }
 
 func NewFrontDerailleur() *FrontDerailleur {

@@ -10,7 +10,10 @@
     "brand": "Brand",
     "delete": "Delete",
     "empty_set": "No results",
-    "save": "Save"
+    "save": "Save",
+    "type": "type",
+    "country": "country",
+    "description": "description"
   },
   "types": {
     "bottom_bracket": "Bottom Bracket",

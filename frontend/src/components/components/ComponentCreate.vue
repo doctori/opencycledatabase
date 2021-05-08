@@ -49,6 +49,7 @@ import http from '../../common/http-common'
 //import UploadImage from './../UploadImages'
 //import ImageService from '../../services/ImagesService'
 import UtilService from '../../services/UtilService'
+import StandardService from '../../services/StandardService'
 export default {
   name: 'ComponentCreate',
   components:{
@@ -75,13 +76,20 @@ export default {
   },  
   updated: function(){
     // we update the selected type if needed
-    console.log(this.typeInput)
-    this.cpn.Type = this.typeInput
-    this.cpn.Standard = this.standardInput
-    this.updateBrand(this.brandInput)
+    console.log(this.typeInput);
+    this.cpn.Type = this.typeInput;
+    // TODO : handle multiple standard selection
+    this.updateStandard(this.standardInput);
+    this.updateBrand(this.brandInput);
   },
   mounted: function (){
     this.cpn = this.componentInput
+  },
+  watch: {
+    standardInput: function(newVal,oldVal){
+      console.log(newVal);
+      this.updateStandard(newVal,oldVal);
+    }
   },
   methods: {
     updateBrand(newBrandID){
@@ -92,11 +100,11 @@ export default {
         });
       }
     },
-    updateStandard(newStandardID){
-      if (newStandardID != this.cpn.Standard.ID){
-        http.get('/standards/+newStandardID')
+    updateStandard(newStandardID,oldStandardID){
+      if (newStandardID != oldStandardID){
+        StandardService.get(this.typeInput,newStandardID)
         .then(result => {
-          this.cpn.Standard = result.data
+          this.cpn.Standards = [result.data]
         });
       }
     },

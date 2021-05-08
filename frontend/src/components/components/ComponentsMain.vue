@@ -1,83 +1,84 @@
 <template>
-<v-container>
-  <v-row>
-    <v-col>
-      <h2>
-        {{ $t('components.title') }}
-      </h2>
-    </v-col>
-  </v-row>
-  <v-row>
-    <v-col cols="2">
-      <v-autocomplete v-model="selectedType"
-        v-on:change="setSelectedType(selectedType)"
-        :items="typesList" 
-        item-text="Type" 
-        item-value="Type" 
-        :label="$t('components.type')"
-        dense
-      ><template slot="item"  slot-scope="data">
-        {{ $t('types.'+camelToSnakeCase(data.item.Type)) }}
-        </template>
-        <template slot="selection" slot-scope="data">
+  <v-container>
+    <v-row>
+      <v-col>
+        <h2>
+          {{ $t('components.title') }}
+        </h2>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="2">
+        <v-autocomplete v-model="selectedType"
+          v-on:change="setSelectedType(selectedType)"
+          :items="typesList" 
+          item-text="Type" 
+          item-value="Type" 
+          :label="$t('components.type')"
+          dense
+        ><template slot="item"  slot-scope="data">
           {{ $t('types.'+camelToSnakeCase(data.item.Type)) }}
-        </template>
-      </v-autocomplete>
-    </v-col>
-    <v-col cols="2">
-      <v-autocomplete v-model="selectedStandard"
-        :items="standards" 
-        v-on:change="setSelectedStandard(selectedStandard)"
-        item-text="Name" 
-        item-value="ID" 
-        :label="$t('components.standard')"
-        dense
-      ></v-autocomplete>
-    </v-col>
-    <v-col cols="2">
-      <v-autocomplete v-model="selectedBrand"
-        :items="brands" 
-        v-on:change="setselectedBrand(selectedBrand)"
-        item-text="Name" 
-        item-value="ID" 
-        :label="$t('messages.brand')"
-        dense
-      ></v-autocomplete>
-    </v-col>
-    <v-col cols="1">
-    </v-col>
-    <v-col cols="1" >
-      <v-btn 
-      id="edit"
-      elevation="4"
-      v-on:click="search()"
-      >
-        {{editMessage}}
-      </v-btn>
-    </v-col>
+          </template>
+          <template slot="selection" slot-scope="data">
+            {{ $t('types.'+camelToSnakeCase(data.item.Type)) }}
+          </template>
+        </v-autocomplete>
+      </v-col>
+      <v-col cols="2">
+        <v-autocomplete v-model="selectedStandard"
+          :items="standards" 
+          item-text="Name" 
+          item-value="ID" 
+          :label="$t('components.standard')"
+          dense
+        ></v-autocomplete>
+      </v-col>
+      <v-col cols="2">
+        <v-autocomplete v-model="selectedBrand"
+          :items="brands" 
+          v-on:change="setSelectedBrand(selectedBrand)"
+          item-text="Name" 
+          item-value="ID" 
+          :label="$t('messages.brand')"
+          dense
+        ></v-autocomplete>
+      </v-col>
+      <v-col cols="1">
+      </v-col>
       <v-col cols="1" >
         <v-btn 
-        id="create"
+        id="edit"
         elevation="4"
-        v-on:click="changeCreateMode()"
+        v-on:click="search()"
+        :loading="loading"
         >
-        {{ $t('messages.create') }}
+          {{editMessage}}
         </v-btn>
-   </v-col>
-  </v-row>
-  <component-display v-for="(component) in components" :key="component.ID"
-    :componentInput="component" 
-  />
-  <component-edit 
-    :componentInput="selectedComponent" 
-    :typeInput="selectedType" 
-    :standardInput="selectedStandard"
-    :brandInput="selectedBrand"
-    v-if="componentEdit" 
-  />
-
-
-</v-container>
+      </v-col>
+        <v-col cols="1" >
+          <v-btn 
+          id="create"
+          elevation="4"
+          v-on:click="changeCreateMode()"
+          >
+          {{ $t('messages.create') }}
+          </v-btn>
+    </v-col>
+    </v-row>
+    <component-display 
+      v-on:edit-component="setEditMode"
+      v-for="(component) in components" 
+      :key="component.ID"
+      :componentInput="component" 
+    />
+    <component-edit 
+      :componentInput="selectedComponent" 
+      :typeInput="selectedType" 
+      :standardInput="selectedStandard"
+      :brandInput="selectedBrand"
+      v-if="componentEdit" 
+    />
+  </v-container>
 </template>
 
 <script>
@@ -100,10 +101,11 @@ export default {
       componentID : '',
       selectedType: Object,
       selectedComponent : Object,
-      selectedStandard: Object,
-      selectedBrand: Object,
+      selectedStandard: -1,
+      selectedBrand: "",
       componentDisplay: true,
       componentEdit: false,
+      loading: false,
       editMessage: this.$t('messages.search')
     }
   },
@@ -129,15 +131,39 @@ export default {
       return UtilService.camelToSnakeCase(str);
     },
     search(){
-      console.log("Filter is standard : ["+this.selectedStandard+"] ")
-      console.log("Filter is Brand : ["+this.selectedBrand+"] ")
+      var filters = {}
+      console.log("Selected Type is "+ this.selectedType)
+      if (this.selectedType != -1 && this.selectedStandard == 0){
+        filters["type"] = this.selectedType;
+      }
+      if (this.selectedStandard != 0){
+        filters["standard"] = this.selectedStandard;
+      }
+      if (this.selectedBrand != ""){
+        filters["brand"] = this.selectedBrand
+      }
+      console.log("Filter is Type : ["+filters["type"]+"]");
+      console.log("Filter is standard : ["+this.selectedStandard+"] ");
+      console.log("Filter is Brand : ["+this.selectedBrand+"] ");
+      this.loading = true
       http.get("/components",{
-        params: {
-            standard: this.selectedStandard,
-            brand: this.selectedBrand,
-          }})
+        params: filters
+      }).then(response => {
+        if (response.length != 0){
+          this.components = response.data;
+          this.componentDisplay = true;
+          this.componentEdit = false;
+        }
+        this.loading = false;
+      })
+
+
       this.componentEdit = false
-  
+    },
+    setEditMode(component){
+      console.log(component);
+      this.selectedComponent = component;
+      this.changeEditMode();
     },
     changeEditMode(){
       this.componentDisplay = ! this.componentDisplay
@@ -177,16 +203,6 @@ export default {
         this.components = response.data
       })
     },
-    setselectedComponent(componentID){
-      http.get("/components/"+componentID)
-      .then(response => {
-        this.selectedComponent = response.data
-      })
-      // TODO : catch errors
-     },
-     setselectedBrand(selectedBrand){
-       this.selectedBrand=selectedBrand
-     }
   }
 }
 

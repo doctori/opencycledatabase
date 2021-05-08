@@ -10,7 +10,11 @@
     "brand": "Marque",
     "delete": "Supprimer",
     "empty_set": "Aucun résultats",
-    "save": "Sauvegarder"
+    "save": "Sauvegarder",
+    "description": "description",
+    "country": "pays",
+    "type": "type",
+    "code": "code"
   },
   "types": {
     "bottom_bracket": "Boitier de Pédalier",
