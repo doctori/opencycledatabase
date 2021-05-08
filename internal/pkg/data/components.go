@@ -93,6 +93,7 @@ func (Component) Get(db *gorm.DB, values url.Values, id int, adj string) (int, i
 		}
 		return 200, components
 	} else if values.Get("type") != "" {
+		// Get component by type of standard (every standard that matches this type)
 		cType := values.Get("type")
 		components := []Component{}
 		log.Printf("Type filter is %s", cType)
@@ -146,7 +147,7 @@ func (Component) search(db *gorm.DB, page int, perPage int, filter string) (comp
 func (Component) getAll(db *gorm.DB, page int, perPage int) (components []Component) {
 
 	//TODO : return LINKS Header with the next page and previous page
-	db.Preload("Standards").Preload("Type").Preload("Brand").Offset(page * perPage).Limit(perPage).Find(&components)
+	db.Preload("Standards").Preload("Brand").Offset(page * perPage).Limit(perPage).Find(&components)
 	return components
 }
 
@@ -157,10 +158,10 @@ func (c Component) save(db *gorm.DB) (Component, error) {
 
 		if c.Brand.ID != 0 {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND year = %v", c.Name, c.Brand.ID, c.Year)
-			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
+			db.Preload("Standards").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
 		} else {
 			log.Printf("Looking for : name = %v AND brand_id = %v AND year = %v", c.Name, c.Brand.ID, c.Year)
-			db.Preload("Standards").Preload("Type").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
+			db.Preload("Standards").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
 		}
 		log.Println(oldc)
 		if oldc.Name == "" {
