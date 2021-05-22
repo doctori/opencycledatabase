@@ -16,7 +16,7 @@ import (
 const sCollection = "spokes"
 
 type Spoke struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	// Length is the length of the spoke
 	Length int16 `formType:"int" formUnit:"mm"`
 }
@@ -36,6 +36,10 @@ func (s *Spoke) Init() {
 		"Rim",
 	}
 	s.ID = primitive.NewObjectID()
+}
+
+func (s *Spoke) GetCompatibleTypes() []string {
+	return s.CompatibleTypes
 }
 
 // Get Spoke return the requests Spoke Standards ID

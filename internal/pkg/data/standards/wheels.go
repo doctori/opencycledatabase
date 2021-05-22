@@ -16,9 +16,9 @@ import (
 const wheelCollection = "wheels"
 
 type Wheel struct {
-	Standard `gorm:"embedded"`
+	Standard `formType:"-"`
 	// Diameter : the Diameter of the wheel (let's say mm)
-	Diameter int16 `formType:"int" formUnit:"mm"`
+	Diameter int16 `formType:"int" formUnit:"mm" bson:"diameter"`
 	// Should we include the subStandard ? Hub/Spoke/Rim ?
 }
 
@@ -39,6 +39,10 @@ func (w *Wheel) Init() {
 		"Tire",
 	}
 	w.ID = primitive.NewObjectID()
+}
+
+func (w *Wheel) GetCompatibleTypes() []string {
+	return w.CompatibleTypes
 }
 
 // Get Wheel return the requests Wheel Standards ID

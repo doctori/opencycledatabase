@@ -17,7 +17,7 @@ const hsCollection = "headsets"
 
 // Headset, holds the specs for a Front Derailleur
 type Headset struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	// SHISAnnotation the actual S.H.I.S Annotation like ZS44/28.6"	SHISAnnotation string
 	SHISAnnotation string `formType:"string"`
 	// TODO : be able to list the possible values
@@ -40,6 +40,10 @@ func (hs *Headset) Init() {
 		"Fork",
 	}
 	hs.ID = primitive.NewObjectID()
+}
+
+func (hs *Headset) GetCompatibleTypes() []string {
+	return hs.CompatibleTypes
 }
 
 // Get Headset return the requests Headset Standards ID

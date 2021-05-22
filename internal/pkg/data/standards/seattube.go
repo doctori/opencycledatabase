@@ -17,7 +17,7 @@ const stCollection = "seattubes"
 
 // SeatTube will define the SeatTube (not the SeatTubeset) standard
 type SeatTube struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	//Diameter in mm
 	Diameter float32 `formType:"int" formUnit:"mm"`
 }
@@ -39,6 +39,10 @@ func (st *SeatTube) Init() {
 		"Frame",
 	}
 	st.ID = primitive.NewObjectID()
+}
+
+func (st *SeatTube) GetCompatibleTypes() []string {
+	return st.CompatibleTypes
 }
 
 // Get SeatTube return the requests SeatTube Standards ID

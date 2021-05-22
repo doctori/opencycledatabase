@@ -17,13 +17,9 @@ const cCollection = "cranks"
 
 // Crank will define the Crank (not the crankset) standard
 type Crank struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	// Length of the crank (cm)
 	Length float32 `formType:"int" formUnit:"cm"`
-	// BB holds the BB compatibles with this crank
-	BB []BottomBracket `gorm:"many2many:cranks_bottombrackets" formType:"nestedArray"`
-	// Chainrings will hold the number of compatible chainring standards
-	Chainrings []ChainRing `gorm:"many2many:cranks_chainrings" formType:"nestedArray"`
 }
 
 func NewCrank() *Crank {
@@ -41,6 +37,9 @@ func (c *Crank) Init() {
 		"ChainRing",
 	}
 	c.ID = primitive.NewObjectID()
+}
+func (c *Crank) GetCompatibleTypes() []string {
+	return c.CompatibleTypes
 }
 
 // Get Crank return the requests Crank Standards ID

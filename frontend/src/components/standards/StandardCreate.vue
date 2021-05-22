@@ -41,6 +41,20 @@
         </v-textarea>
       </v-col>
     </v-row>
+    <v-row>
+      <v-col id="compatibleWith" cols="6" >
+        <v-select
+          v-model="std.CompatibleWith"
+          :items="possibleCompatibleStandards"
+          item-text="Name"
+          item-value="ID"
+          :label="$t('standards.compatibleWith')"
+          multiple
+          :hint="$t('standards.compatibleWithHint')"
+          persistent-hint
+        ></v-select>
+      </v-col>
+    </v-row>
 
     <div v-if="loading">
       Loading ...
@@ -126,6 +140,7 @@ export default {
     return {
       'std': Object,
       'standardType': String,
+      'possibleCompatibleStandards': [],
       'saved': false,
       'saveError': null,
       'brands': [],
@@ -149,6 +164,7 @@ export default {
         this.standardType = val;
         this.getStandards(this.standardType);
         this.getStandardDefintion(this.standardType);
+        this.getPossibleCompatibleStandard(this.standardType)
       }
 
     }
@@ -201,6 +217,26 @@ export default {
       })
       .finally(()=>{
         this.loading=false
+      })
+    },
+    getPossibleCompatibleStandard(type){
+      http
+        .get("/standards/"+type.toLowerCase(),{
+          params: {
+            compatible_types_only: true
+          }
+        })
+        .then(response => {
+          this.possibleCompatibleStandards = []
+          response.data.forEach(type => {
+          http
+            .get("/standards/"+type.toLowerCase(),{
+            })
+            .then(response => {
+              this.possibleCompatibleStandards = this.possibleCompatibleStandards.concat(response.data)
+              console.log(this.possibleCompatibleStandards)
+            })
+        })
       })
     },
     getStandardDefintion(type){

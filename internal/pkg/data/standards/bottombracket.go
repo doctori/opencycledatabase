@@ -17,7 +17,7 @@ const bbCollection = "bottombrackets"
 
 // BottomBracket will define the bottom bracket standard
 type BottomBracket struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	// Thread definition (if needed)
 	ThreadID int    `json:"-" fromType:"-"`
 	Thread   Thread `formType:"nested"`
@@ -71,6 +71,10 @@ func (bb *BottomBracket) Post(db *mongo.Database, values url.Values, request *ht
 // Put BottomBracket delete the requested BottomBracket standard ID
 func (bb *BottomBracket) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return bb.Standard.Put(db, values, body, bb)
+}
+
+func (bb *BottomBracket) GetCompatibleTypes() []string {
+	return bb.CompatibleTypes
 }
 
 // Save BottomBracket will register the BB into the database

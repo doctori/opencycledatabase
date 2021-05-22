@@ -17,7 +17,7 @@ const fCollection = "frames"
 
 // Frame will define the Frame (not the Frameset) standard
 type Frame struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	// Geometry of the Frame (using https://geometrygeeks.bike/ as a reference)
 	//Reach in mm
 	Reach float32 `formType:"int" formUnit:"mm"`
@@ -64,6 +64,9 @@ func (f *Frame) Init() {
 		"SeatTube",
 	}
 	f.ID = primitive.NewObjectID()
+}
+func (f *Frame) GetCompatibleTypes() []string {
+	return f.CompatibleTypes
 }
 
 // Get Frame return the requests Frame Standards ID

@@ -17,7 +17,7 @@ const hCollection = "hubs"
 
 // Hub holds the information on the hub
 type Hub struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	// Holes : the number of spokes attached to the hub
 	Holes uint8 `formType:"int"`
 	// AxleType the type of axle required
@@ -46,6 +46,10 @@ func (h *Hub) Init() {
 		"Axle",
 	}
 	h.ID = primitive.NewObjectID()
+}
+
+func (h *Hub) GetCompatibleTypes() []string {
+	return h.CompatibleTypes
 }
 
 // Get Hub return the requests Hub Standards ID
@@ -83,9 +87,7 @@ func (h *Hub) Save(db *mongo.Database) (err error) {
 	}
 	filter := bson.M{"_id": h.ID}
 	log.Print(filter)
-	res := &mongo.UpdateResult{}
-	res, err = col.ReplaceOne(context.TODO(), &filter, h, &opts)
-	log.Printf("%#v", res)
+	_, err = col.ReplaceOne(context.TODO(), &filter, h, &opts)
 	if err != nil {
 		log.Printf("Could not save the Hub : %s", err.Error())
 		return

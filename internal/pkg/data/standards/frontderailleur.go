@@ -52,6 +52,10 @@ func (fd *FrontDerailleur) Init() {
 	fd.ID = primitive.NewObjectID()
 }
 
+func (fd *FrontDerailleur) GetCompatibleTypes() []string {
+	return fd.CompatibleTypes
+}
+
 // Get FrontDerailleur return the requests FrontDerailleur Standards ID
 func (fd *FrontDerailleur) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return fd.Standard.Get(db, values, id, fd, adj)

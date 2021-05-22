@@ -18,7 +18,7 @@ const tCollection = "threads"
 // Thread defines the the standard of a thread used
 // todo : https://en.wikipedia.org/wiki/Screw_thread
 type Thread struct {
-	Standard      `gorm:"embedded" formType:"-"`
+	Standard      `formType:"-"`
 	ThreadPerInch int16   `formType:"int" formUnit:"tpi"`
 	Diameter      float32 `formType:"int" formUnit:"mm"`
 	Orientation   string  `formType:"string" formUnit:"orientation"`
@@ -41,6 +41,10 @@ func (t *Thread) Init() {
 		"Frame",
 	}
 	t.ID = primitive.NewObjectID()
+}
+
+func (t *Thread) GetCompatibleTypes() []string {
+	return t.CompatibleTypes
 }
 
 // Get Thread return the requests Thread Standards ID

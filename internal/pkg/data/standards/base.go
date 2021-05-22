@@ -29,6 +29,7 @@ type StandardInt interface {
 	GetCode() string
 	GetID() primitive.ObjectID
 	SetID(id primitive.ObjectID)
+	GetCompatibleTypes() []string
 	GetType() string
 	IsNul() bool
 	//GetCompatible() []StandardInt
@@ -157,7 +158,14 @@ func (Standard) Get(db *mongo.Database, values url.Values, id primitive.ObjectID
 	log.Printf("having Get for standard [%#v] with ID : %d", standardType, id)
 	page := values.Get("page")
 	perPage := values.Get("per_page")
+
 	structOnly := values.Get("struct_only")
+	// List possible Compatible types
+	compatibleTypes := values.Get("compatible_types_only")
+	if compatibleTypes != "" {
+		log.Printf("We have a compatible types list request")
+		return 200, standardType.GetCompatibleTypes()
+	}
 	// if the request just want the struct we'll respond an new struct only
 	if structOnly != "" {
 		log.Print("We have a struct only request")

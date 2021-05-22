@@ -40,6 +40,8 @@
     "list-name": "Liste des standards"
   },
   "standards": {
-    "new": "Créer un nouveau Standard"
+    "new": "Créer un nouveau Standard",
+    "compatibleWith": "Compatible avec",
+    "compatibleWithHint": "Liste des standards Compatible avec celui ci"
   }
 }

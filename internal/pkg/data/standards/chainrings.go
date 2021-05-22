@@ -17,7 +17,7 @@ const crCollection = "chainrings"
 
 // ChainRing will define the Chainrings standard
 type ChainRing struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 	// BoltCircleDiameter of the chainring (ref : https://www.sheldonbrown.com/gloss_bo-z.html#bcd)
 	BoltCircleDiameter float32 `formType:"int" formUnit:"cm"`
 	// BoltsNumber hold the number of bolt on the chainring
@@ -46,6 +46,9 @@ func (cr *ChainRing) Init() {
 		"Crank",
 	}
 	cr.ID = primitive.NewObjectID()
+}
+func (cr *ChainRing) GetCompatibleTypes() []string {
+	return cr.CompatibleTypes
 }
 
 // Get ChainRing return the requests ChainRing Standards ID

@@ -16,7 +16,7 @@ import (
 const rdCollection = "rearderailleurs"
 
 type RearDerailleur struct {
-	Standard `gorm:"embedded" formType:"-"`
+	Standard `formType:"-"`
 
 	// CageLength hold the length of the cage in mm (is this a standard defining key ?)
 	CageLength float32 `json:"CageLength" formType:"int"  formUnit:"mm"`
@@ -42,6 +42,10 @@ func (rd *RearDerailleur) Init() {
 		"Frame",
 	}
 	rd.ID = primitive.NewObjectID()
+}
+
+func (rd *RearDerailleur) GetCompatibleTypes() []string {
+	return rd.CompatibleTypes
 }
 
 // Get RearDerailleur return the requests RearDerailleur Standards ID

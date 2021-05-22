@@ -39,6 +39,7 @@
     "list-name": "Standard List"
   },
   "standards": {
-    "new": "Create a new Standard"
+    "new": "Create a new Standard",
+    "compatibleWithHint": "List of standards compatible with this one"
   }
 }
