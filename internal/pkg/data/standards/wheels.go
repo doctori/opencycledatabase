@@ -1,80 +1,80 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const wheelCollection = "wheels"
 
 type Wheel struct {
 	Standard `gorm:"embedded"`
 	// Diameter : the Diameter of the wheel (let's say mm)
 	Diameter int16 `formType:"int" formUnit:"mm"`
+	// Should we include the subStandard ? Hub/Spoke/Rim ?
 }
 
 func NewWheel() *Wheel {
+
 	w := new(Wheel)
 	w.Type = "Wheel"
+	w.CompatibleTypes = []string{"Fork", "Tire"}
+	handledStandard[w.Type] = wheelCollection
 	return w
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (w *Wheel) Init() {
+	w.Type = "Wheel"
+	w.CompatibleTypes = []string{
+		"Fork",
+		"Tire",
+	}
+	w.ID = primitive.NewObjectID()
+}
+
 // Get Wheel return the requests Wheel Standards ID
-func (w *Wheel) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (w *Wheel) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return w.Standard.Get(db, values, id, w, adj)
 }
 
 // Delete Wheel delete the requested Wheel standard ID
-func (w *Wheel) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (w *Wheel) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return w.Standard.Delete(db, values, id, w)
 }
 
 // Post Wheel delete the requested Wheel standard ID
-func (w *Wheel) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (w *Wheel) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return w.Standard.Post(db, values, request, id, adj, w)
 }
 
 // Put Wheel delete the requested Wheel standard ID
-func (w *Wheel) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (w *Wheel) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return w.Standard.Put(db, values, body, w)
 }
 
 // Save Wheel will register the crank into the database
-func (w *Wheel) Save(db *gorm.DB) (err error) {
-
-	// If we have a new record we create it
-	if w.GetID() == 0 {
-		oldc := new(Wheel)
-		if errors.Is(db.Where("name = ? AND code = ?", w.GetName(), w.GetCode()).First(&oldc).Error, gorm.ErrRecordNotFound) {
-			log.Println("==========================================================================================")
-			log.Println("Creating the record")
-			log.Printf("%#v", w)
-			log.Println("==========================================================================================")
-
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(w).Error
-			if err != nil {
-				return
-			}
-		} else {
-			log.Println("Updating the record")
-			log.Println(oldc)
-			err = db.Model(oldc).Updates(w).Error
-			if err != nil {
-				return
-			}
-			log.Println(oldc)
-			// TODO fix this
-			db.Model(oldc).First(w, oldc.ID)
-		}
-	} else {
-		err = db.Save(w).Error
-		if err != nil {
-			return
-		}
+func (w *Wheel) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[w.GetType()]
+	col := db.Collection(collectionName)
+	if w.ID == primitive.NilObjectID {
+		w.ID = primitive.NewObjectID()
+		log.Printf("Object of type %s is new inserting it into collection %s", w.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), w)
+		log.Print(res)
+		return
 	}
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": w.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, w, opts)
 	return
 }

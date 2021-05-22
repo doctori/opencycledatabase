@@ -124,14 +124,7 @@ export default {
   },
   data : function(){
     return {
-      'std':{
-        'name':'',
-        'type':'',
-        // TODO : get Country list
-        'country':'',
-        // TODO : get brand
-        'brand':''
-      },
+      'std': Object,
       'standardType': String,
       'saved': false,
       'saveError': null,
@@ -147,6 +140,7 @@ export default {
   watch: {
     standardInput(val,oldVal){
       if(val != oldVal && val != this.std){
+        console.log(val);
         this.std = val;
       }
     },

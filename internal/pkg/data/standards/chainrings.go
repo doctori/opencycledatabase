@@ -1,13 +1,19 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const crCollection = "chainrings"
 
 // ChainRing will define the Chainrings standard
 type ChainRing struct {
@@ -27,54 +33,55 @@ type ChainRing struct {
 // NewChainRing return a ChainRing empty object with some predefined fields
 func NewChainRing() *ChainRing {
 	cr := new(ChainRing)
-	cr.Type = "ChainRing"
+	cr.Init()
+	handledStandard[cr.Type] = crCollection
 	return cr
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (cr *ChainRing) Init() {
+	cr.Type = "ChainRing"
+	cr.CompatibleTypes = []string{
+		"Chain",
+		"Crank",
+	}
+	cr.ID = primitive.NewObjectID()
+}
+
 // Get ChainRing return the requests ChainRing Standards ID
-func (cr *ChainRing) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (cr *ChainRing) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return cr.Standard.Get(db, values, id, cr, adj)
 }
 
 // Delete ChainRing delete the requested ChainRing standard ID
-func (cr *ChainRing) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (cr *ChainRing) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return cr.Standard.Delete(db, values, id, cr)
 }
 
 // Post ChainRing delete the requested ChainRing standard ID
-func (cr *ChainRing) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (cr *ChainRing) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return cr.Standard.Post(db, values, request, id, adj, cr)
 }
 
 // Put ChainRing delete the requested ChainRing standard ID
-func (cr *ChainRing) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (cr *ChainRing) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return cr.Standard.Put(db, values, body, cr)
 }
 
 // Save ChainRing will register the BB into the database
-func (cr *ChainRing) Save(db *gorm.DB) (err error) {
-
-	// If we have a new record we create it
-	if cr.GetID() == 0 {
-		oldcr := new(ChainRing)
-		if errors.Is(db.Where("name = ? AND code = ?", cr.GetName(), cr.GetCode()).First(&oldcr).Error, gorm.ErrRecordNotFound) {
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(cr).Error
-			if err != nil {
-				return
-			}
-		} else {
-			err = db.Model(oldcr).Updates(cr).Error
-			if err != nil {
-				return
-			}
-			db.Model(oldcr).First(cr, oldcr.ID)
-		}
-	} else {
-		err = db.Save(cr).Error
-		if err != nil {
-			return
-		}
+func (cr *ChainRing) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[cr.GetType()]
+	col := db.Collection(collectionName)
+	if cr.ID == primitive.NilObjectID {
+		cr.Init()
+		log.Printf("Object of type %s is new inserting it into collection %s", cr.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), cr)
+		log.Print(res)
+		return
 	}
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": cr.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, cr, opts)
 	return
 }

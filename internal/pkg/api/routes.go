@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
 	"github.com/doctori/opencycledatabase/internal/pkg/data"
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
@@ -18,10 +17,11 @@ var (
 )
 
 // Init will create the routes
-func (api *API) Init(db *gorm.DB, conf *config.Config) {
+func (api *API) Init(db *mongo.Database, conf *config.Config) {
 	bike := new(data.Bike)
 	component := new(data.Component)
 	image := new(data.Image)
+
 	// static content
 	api.addStaticDir("./upload")
 	// TODO : use Gorilla Mux ??
@@ -37,6 +37,8 @@ func (api *API) Init(db *gorm.DB, conf *config.Config) {
 	api.addStandard(db, standards.NewWheel())
 	api.addStandard(db, standards.NewSpoke())
 	api.addStandard(db, standards.NewThread())
+	api.addStandard(db, standards.NewFrame())
+	api.addStandard(db, standards.NewSeatTube())
 	api.AddResource(db, &data.Brand{}, "/brands")
 	http.HandleFunc("/standards", api.returnStandardsLists())
 	api.AddNonJSONResource(db, image, "/images")
@@ -76,14 +78,15 @@ func (api *API) addStaticDir(directory string) {
 }
 
 // AddStandard add '/standards/%standardType%/ path to the http Handler
-func (api *API) addStandard(db *gorm.DB, resource data.Resource) {
-
+func (api *API) addStandard(db *mongo.Database, resource data.Resource) {
+	std := resource.(standards.StandardInt)
 	// Retrieve the Type Name of the Resource (Bike, Component etc ...)
-	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
+	resourceType := std.GetType()
+	//stdType.Save(db)
 	managedStandard = append(managedStandard, resource)
-	path := fmt.Sprintf("/standards/%v", resourceType)
-	subPath := fmt.Sprintf("/standards/%v/", resourceType)
-	componentsPath := fmt.Sprintf("/standards/%v/components", resourceType)
+	path := fmt.Sprintf("/standards/%v", strings.ToLower(resourceType))
+	subPath := fmt.Sprintf("/standards/%v/", strings.ToLower(resourceType))
+	componentsPath := fmt.Sprintf("/standards/%v/components", strings.ToLower(resourceType))
 	log.Printf("adding path %v for resource %#v", path, resource)
 	http.HandleFunc(path, api.requestHandler(db, resource, resourceType, true))
 	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType, true))

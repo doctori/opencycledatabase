@@ -1,20 +1,26 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const bbCollection = "bottombrackets"
 
 // BottomBracket will define the bottom bracket standard
 type BottomBracket struct {
 	Standard `gorm:"embedded" formType:"-"`
 	// Thread definition (if needed)
 	ThreadID int    `json:"-" fromType:"-"`
-	Thread   Thread `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" formType:"nested"`
+	Thread   Thread `formType:"nested"`
 	// IsThreaded : true if  it's a threaded bottom bracket
 	IsThreaded bool `json:"isThreaded" formType:"bool"`
 	// IsPressFit : true if it's a pressfit bottom bracket
@@ -28,56 +34,62 @@ type BottomBracket struct {
 
 func NewBottomBracket() *BottomBracket {
 	bb := new(BottomBracket)
-	bb.Type = "BottomBracket"
+	bb.Init()
+	// TODO : the other ones
+	if len(handledStandard) == 0 {
+		handledStandard = make(map[string]string)
+	}
+	handledStandard[bb.Type] = bbCollection
 	return bb
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (bb *BottomBracket) Init() {
+	bb.Type = "BottomBracket"
+	bb.CompatibleTypes = []string{
+		"Crank",
+		"Frame",
+	}
+	bb.ID = primitive.NewObjectID()
+}
+
 // Get BottomBracket return the requests BottomBracket Standards ID
-func (bb *BottomBracket) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (bb *BottomBracket) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return bb.Standard.Get(db, values, id, bb, adj)
 }
 
 // Delete BottomBracket delete the requested BottomBracket standard ID
-func (bb *BottomBracket) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (bb *BottomBracket) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return bb.Standard.Delete(db, values, id, bb)
 }
 
 // Post BottomBracket delete the requested BottomBracket standard ID
-func (bb *BottomBracket) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (bb *BottomBracket) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return bb.Standard.Post(db, values, request, id, adj, bb)
 }
 
 // Put BottomBracket delete the requested BottomBracket standard ID
-func (bb *BottomBracket) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (bb *BottomBracket) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return bb.Standard.Put(db, values, body, bb)
 }
 
 // Save BottomBracket will register the BB into the database
-func (bb *BottomBracket) Save(db *gorm.DB) (err error) {
-
-	// If we have a new record we create it
-	if bb.GetID() == 0 {
-		oldbb := new(BottomBracket)
-		if errors.Is(db.Where("name = ? AND code = ?", bb.GetName(), bb.GetCode()).First(&oldbb).Error, gorm.ErrRecordNotFound) {
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(bb).Error
-			if err != nil {
-				return
-			}
-		} else {
-			err = db.Model(oldbb).Updates(bb).Error
-
-			if err != nil {
-				return
-			}
-
-			db.Model(oldbb).First(bb, oldbb.ID)
-		}
-	} else {
-		err = db.Save(bb).Error
-		if err != nil {
-			return
-		}
+func (bb *BottomBracket) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[bb.GetType()]
+	col := db.Collection(collectionName)
+	if bb.ID == primitive.NilObjectID {
+		bb.Init()
+		log.Printf("Object of type %s is new inserting it into collection %s", bb.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), bb)
+		log.Print(res)
+		return
 	}
+	upsert := true
+	opts := options.FindOneAndUpdateOptions{
+		Upsert: &upsert,
+	}
+	filter := bson.M{"_id": bb.ID}
+	col.FindOneAndUpdate(context.TODO(), filter, bb, &opts)
 	return
 }

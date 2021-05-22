@@ -8,11 +8,11 @@ import (
 	"github.com/doctori/opencycledatabase/internal/pkg/api"
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
 	"github.com/doctori/opencycledatabase/internal/pkg/data"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
-	db   *gorm.DB
+	db   *mongo.Database
 	conf *config.Config
 )
 

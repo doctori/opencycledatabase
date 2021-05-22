@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type (
@@ -20,21 +21,21 @@ type (
 )
 
 // Get returns a 405
-func (GetNotSupported) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (GetNotSupported) Get(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return 405, ""
 }
 
 // Post returns a 405
-func (PostNotSupported) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (PostNotSupported) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return 405, ""
 }
 
 // Put returns a 405
-func (PutNotSupported) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (PutNotSupported) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return 405, ""
 }
 
 // Delete returns a 405
-func (DeleteNotSupported) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (DeleteNotSupported) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return 405, ""
 }

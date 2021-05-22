@@ -1,8 +1,8 @@
 package data
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,20 +10,25 @@ import (
 	"strconv"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
+
+const componentCollection = "components"
 
 // Component : Generic struct to regroup most common properties
 type Component struct {
 	// add basic ID/Created@/Updated@/Delete@ through Gorm
-	gorm.Model
-	Name        string `gorm:"uniqueIndex:component_uniqueness"`
-	Brand       Brand
-	BrandID     int `json:"-" gorm:"uniqueIndex:component_uniqueness"`
+	ID          primitive.ObjectID `bson:"_id"`
+	Name        string             `bson:"name"`
+	Brand       Brand              `bson:"brand"`
 	Description string
-	Standards   []standards.Standard `gorm:"many2many:component_standards"`
-	Images      []Image              `gorm:"many2many:component_images"`
-	Year        string               `gorm:"uniqueIndex:component_uniqueness"`
+	Standards   []standards.Standard `bson:"standards"`
+	Images      []Image              `bson:"images"`
+	Year        string               `bson:"year"`
 	PutNotSupported
 }
 
@@ -37,7 +42,7 @@ type ComponentInt interface {
 }
 
 // Post will save the component in database
-func (Component) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (Component) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	body := request.Body
 	fmt.Printf("Received args : \n\t %+v\n", body)
 	decoder := json.NewDecoder(body)
@@ -56,23 +61,26 @@ func (Component) Post(db *gorm.DB, values url.Values, request *http.Request, id 
 }
 
 // Get return a generic Component
-func (Component) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (Component) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 
-	page, err := strconv.Atoi(values.Get("page"))
+	page, err := strconv.ParseInt(values.Get("page"), 10, 64)
 	if err != nil {
 		page = 0
 	}
 	// Retrieve the per_page arg, if not a number default to 30
-	perPage, err := strconv.Atoi(values.Get("per_page"))
+	perPage, err := strconv.ParseInt(values.Get("per_page"), 10, 64)
 	if err != nil {
 		perPage = defaultPerPage
 	}
 
 	var c Component
-	if id != 0 {
-		err := db.First(&c, id).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 404, "Component not found"
+	collection := db.Collection(componentCollection)
+	idx, rawFilter := bsoncore.AppendDocumentStart(nil)
+	components := []Component{}
+	if id != primitive.NilObjectID {
+		result := collection.FindOne(context.TODO(), bson.M{"_id": id})
+		if result.Err() != nil {
+			return 404, fmt.Sprintf("Component not found because %s", result.Err().Error())
 		}
 		return 200, c
 	}
@@ -82,111 +90,95 @@ func (Component) Get(db *gorm.DB, values url.Values, id int, adj string) (int, i
 	} else if values.Get("search") != "" {
 		return 200, c.search(db, page, perPage, values.Get("search"))
 	} else if values.Get("standard") != "" {
-		standard := values.Get("standard")
-		components := []Component{}
-		log.Printf("Standard filter is %s", standard)
-		err = db.Model(&Component{}).
-			Joins("INNER JOIN component_standards as cs ON components.id = cs.component_id AND cs.standard_id = ?", standard).
-			Find(&components).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 404, "Component not found"
-		}
-		return 200, components
-	} else if values.Get("type") != "" {
-		// Get component by type of standard (every standard that matches this type)
-		cType := values.Get("type")
-		components := []Component{}
-		log.Printf("Type filter is %s", cType)
-		err = db.Model(&Component{}).
-			Joins("INNER JOIN component_standards as cs ON components.id = cs.component_id").
-			Joins("INNER JOIN standards as std ON cs.standard_id = std.id AND std.type = ?", cType).
-			Find(&components).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Should we return a 404 on an empty result ? Gorm doesn't return RecordNotFound on a Find()
-			return 404, "Components not found"
-		}
-		return 200, components
-	}
+		bsoncore.AppendStringElement(rawFilter, "standards.name", values.Get("standard"))
+		log.Printf("Standard filter is %s", values.Get("standard"))
 
-	log.Println(values.Get("name"))
-	err = db.Preload("Standards").
-		Preload("Type").
-		Preload("Brand").
-		Find(&c, "name= ? ", values.Get("name")).
-		Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 404, "Component not found"
+	} else if values.Get("type") != "" {
+		bsoncore.AppendStringElement(rawFilter, "type", values.Get("type"))
+		log.Printf("Type filter is %s", values.Get("standard"))
+	} else if values.Get("name") != "" {
+		bsoncore.AppendStringElement(rawFilter, "name", values.Get("name"))
+		log.Printf("Name filter is %s", values.Get("name"))
 	}
-	return 200, c
+	bsoncore.AppendDocumentEnd(rawFilter, idx)
+	filter := bson.M{}
+	err = bson.Unmarshal(rawFilter, &filter)
+	if err != nil {
+		return 500, fmt.Sprintf("Could not decode filter %s", err.Error())
+	}
+	cursor, err := collection.Find(context.TODO(), rawFilter)
+	if err != nil {
+		return 404, fmt.Sprintf("Component not found because %s", err.Error())
+	}
+	if err = cursor.All(context.TODO(), components); err != nil {
+		return 500, fmt.Sprintf("Error while read mongo cursor : %s", err.Error())
+	}
+	return 200, components
 }
 
-func (Component) Delete(db *gorm.DB, value url.Values, id int) (int, interface{}) {
+func (Component) Delete(db *mongo.Database, value url.Values, id primitive.ObjectID) (int, interface{}) {
 
-	if id == 0 {
+	if id == primitive.NilObjectID {
 		return 400, "Component ID required"
 	}
-	err := db.Delete(&Component{}, id).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 404, "Component not found"
+	collection := db.Collection(componentCollection)
+	result, err := collection.DeleteOne(context.TODO(), bson.M{"_id": id})
+	if err != nil {
+		return 404, fmt.Sprintf("Component not found because %s", err.Error())
 	}
 	log.Printf("Component is ID %d has been removed", id)
-	return 201, "Component Removed"
+	return 201, result
 }
 
-func (Component) search(db *gorm.DB, page int, perPage int, filter string) (components []Component) {
+func (c Component) search(db *mongo.Database, page int64, perPage int64, filter string) (components []Component) {
 	filter = fmt.Sprintf("%%%s%%", filter)
-	db.Preload("Standards").
-		Preload("Type").
-		Preload("Brand").
-		Where("name LIKE ?", filter).
-		Find(&components).
-		Offset(page * perPage).
-		Limit(perPage)
+	collection := db.Collection(componentCollection)
+	skip := page * perPage
+	c.find(collection,
+		bson.M{"name": primitive.Regex{
+			Pattern: "^" + filter,
+			Options: "i"},
+		},
+		&options.FindOptions{
+			Skip:  &skip,
+			Limit: &perPage,
+		},
+	)
+
 	return
 }
-func (Component) getAll(db *gorm.DB, page int, perPage int) (components []Component) {
+func (c Component) getAll(db *mongo.Database, page int64, perPage int64) (components []Component) {
 
 	//TODO : return LINKS Header with the next page and previous page
-	db.Preload("Standards").Preload("Brand").Offset(page * perPage).Limit(perPage).Find(&components)
+	skip := page * perPage
+	collection := db.Collection(componentCollection)
+	options := options.FindOptions{
+		Skip:  &skip,
+		Limit: &perPage,
+	}
+	return c.find(collection, bson.M{}, &options)
+
+}
+func (Component) find(coll *mongo.Collection, filter bson.M, options *options.FindOptions) (components []Component) {
+	results, err := coll.Find(
+		context.TODO(),
+		filter,
+		options)
+	if err != nil {
+		log.Printf("Could not parse find Results %s", err.Error())
+		return components
+	}
+	err = results.All(context.TODO(), &components)
+	if err != nil {
+		log.Printf("Could not erad cursor %s ", err.Error())
+	}
 	return components
 }
+func (c Component) save(db *mongo.Database) (Component, error) {
+	opts := options.Update().SetUpsert(true)
+	col := db.Collection(brandCollection)
+	filter := bson.M{"_id": c.ID}
+	_, err := col.UpdateOne(context.TODO(), filter, c, opts)
 
-func (c Component) save(db *gorm.DB) (Component, error) {
-	if c.ID == 0 {
-		oldc := new(Component)
-		db.Where(c.Brand).First(&c.Brand)
-
-		if c.Brand.ID != 0 {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND year = %v", c.Name, c.Brand.ID, c.Year)
-			db.Preload("Standards").Preload("Brand").Where("name = ? AND brand_id =  ? AND year = ?", c.Name, c.Brand.ID, c.Year).First(&oldc)
-		} else {
-			log.Printf("Looking for : name = %v AND brand_id = %v AND year = %v", c.Name, c.Brand.ID, c.Year)
-			db.Preload("Standards").Preload("Brand").Where("name = ? AND year = ?", c.Name, c.Year).First(&oldc)
-		}
-		log.Println(oldc)
-		if oldc.Name == "" {
-			log.Println("Creating the Component !")
-			db.Create(&c)
-		} else {
-			log.Println("Updating the Component ...")
-			// Let's check that for our Standard ...
-			for j, ns := range c.Standards {
-				if ns.ID == 0 {
-					for _, s := range oldc.Standards {
-						if s.Name == ns.Name && s.Code == ns.Code && s.Type == ns.Type {
-							c.Standards[j].ID = s.ID
-						}
-					}
-				}
-			}
-			c.Brand = c.Brand.save(db)
-			db.Model(&oldc).Updates(&c)
-			c = *oldc
-		}
-	} else {
-		// Maybe Save nested object independantly ?
-		c.Brand = c.Brand.save(db)
-		db.Save(&c)
-	}
-	return c, db.Error
+	return c, err
 }

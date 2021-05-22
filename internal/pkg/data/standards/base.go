@@ -1,57 +1,54 @@
 package standards
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"reflect"
-	"regexp"
-	"strconv"
-	"strings"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // TODO remove this shit from here
 // this should be controlled by the API not the datamodel
 const defaultPerPage int = 30
 
-var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+var handledStandard map[string]string
 
 // StandardInt interface define all the method that a standard need to have to be a
 // real standard struct
 type StandardInt interface {
 	GetName() string
-	//	GetCountry() string
 	GetCode() string
-	GetID() uint
-	SetID(id uint)
+	GetID() primitive.ObjectID
+	SetID(id primitive.ObjectID)
 	GetType() string
-	//	Get() string
 	IsNul() bool
-	Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{})
-	Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{})
-	Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{})
-	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
-	Save(db *gorm.DB) (err error)
+	//GetCompatible() []StandardInt
+	Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{})
+	Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{})
+	Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{})
+	Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{})
+	Save(db *mongo.Database) (err error)
 }
 
 // Standard define the generic common Standard properties
 type Standard struct {
-	// add basic ID/Created@/Updated@/Delete@ through Gorm
-	gorm.Model `formType:"-"`
-	// TODO : this is a embded struct on other structs,
-	//  find a way to create indexes on each struct that embed this struct
-	Name        string `formType:"string" `
-	Country     string `formType:"country"`
-	Code        string `formType:"string"`
-	Type        string `formType:"string"`
-	Description string `formType:"string"`
+	ID              primitive.ObjectID   `formType:"-" bson:"_id"`
+	Name            string               `formType:"string" bson:"name"`
+	Country         string               `formType:"country" bson:"country"`
+	Code            string               `formType:"string" bson:"code"`
+	Type            string               `formType:"string" bson:"type"`
+	Description     string               `formType:"string" bson:"description"`
+	CompatibleTypes []string             `formType:"list" bson:"compatibles_types"`
+	CompatibleWith  []primitive.ObjectID `formType:"compatibility_list" bson:"compatible_with"`
 }
 
 // FieldForm holds the defintion of the field on the Form side (UI)
@@ -86,24 +83,32 @@ func (s *Standard) GetCode() string {
 }
 
 // GetID return the ID
-func (s *Standard) GetID() uint {
+func (s *Standard) GetID() primitive.ObjectID {
 	return s.ID
 }
 
 // Delete Standard will remove the Standard struct in the database
-func (Standard) Delete(db *gorm.DB, values url.Values, id int, standardType StandardInt) (int, interface{}) {
-	// retrieve the Standard
-	standard := reflect.New(reflect.TypeOf(standardType))
-	err := db.First(&standard, id).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 404, "Standard not found"
+func (Standard) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID, standardType StandardInt) (int, interface{}) {
+	if id != primitive.NilObjectID {
+		log.Print("Will Delete the ID : ")
+		log.Println(id)
+		collectionName := handledStandard[standardType.GetType()]
+		col := db.Collection(collectionName)
+		deleteResult, err := col.DeleteOne(context.TODO(), bson.M{"_id": id})
+		if err == mongo.ErrNoDocuments {
+			return 404, "Id Not Found"
+		}
+		if err != nil {
+			return 500, "Bleuuharg"
+		}
+		return 200, deleteResult
 	}
-	// TODO : implement Delete method
-	db.Delete(standard)
-	return 200, ""
+	log.Println(id)
+	return 404, "NOT FOUND"
+
 }
 
-func (s *Standard) SetID(id uint) {
+func (s *Standard) SetID(id primitive.ObjectID) {
 	s.ID = id
 }
 
@@ -148,40 +153,40 @@ func GetFormFields(s StandardInt) map[string]FieldForm {
 }
 
 // Get Standard return the requests Standards (given the type of standard requested)
-func (Standard) Get(db *gorm.DB, values url.Values, id int, standardType StandardInt, adj string) (int, interface{}) {
+func (Standard) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, standardType StandardInt, adj string) (int, interface{}) {
 	log.Printf("having Get for standard [%#v] with ID : %d", standardType, id)
 	page := values.Get("page")
 	perPage := values.Get("per_page")
 	structOnly := values.Get("struct_only")
 	// if the request just want the struct we'll respond an new struct only
 	if structOnly != "" {
+		log.Print("We have a struct only request")
 		return 200, GetFormFields(standardType)
 	}
 	// Let Display All that We Have
 	// Someday Pagination will be there
-	if id == 0 {
+	if id == primitive.NilObjectID {
+		log.Print("returning every items")
 		return 200, GetAll(db, page, perPage, standardType)
 	}
+	// retrieve collections from handled standards
+	collectionName := handledStandard[standardType.GetType()]
+	collection := db.Collection(collectionName)
+	result := collection.FindOne(context.TODO(), bson.M{"_id": id})
 
-	err := db.Model(standardType).Where("id = ?", id).Take(standardType).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Println(err)
+	if result.Err() != nil {
+		log.Println(result.Err().Error())
 		log.Println(standardType)
-		return 404, "Standard not found"
+		return 404, fmt.Sprintf("Standard not found because %s", result.Err().Error())
 	}
-	return 200, standardType
-}
-func ToSnakesCase(str string) string {
+	result.Decode(&standardType)
 
-	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
-	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
-	return strings.ToLower(fmt.Sprintf("%ss", snake))
+	return 200, standardType
 }
 
 // GetAll will returns al the standards
-func GetAll(db *gorm.DB, page string, perPage string, standardType StandardInt) interface{} {
-	ipage, err := strconv.Atoi(page)
+func GetAll(db *mongo.Database, page string, perPage string, standardType StandardInt) interface{} {
+	/*ipage, err := strconv.Atoi(page)
 	if err != nil {
 		ipage = 0
 	}
@@ -190,21 +195,25 @@ func GetAll(db *gorm.DB, page string, perPage string, standardType StandardInt) 
 	if err != nil {
 		iperPage = defaultPerPage
 	}
-
+	*/
 	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
 	sType := reflect.TypeOf(standardType)
 	standards := reflect.New(reflect.SliceOf(sType)).Interface()
 
 	log.Printf("%#v\n", standards)
-	db.Model(standardType).
-		Offset(ipage * iperPage).
-		Limit(iperPage).
-		Find(standards)
+	collectionName := handledStandard[standardType.GetType()]
+	collection := db.Collection(collectionName)
+	// TODO : pagination
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		log.Printf("Whow would not get all standards %s", err.Error())
+	}
+	cursor.All(context.TODO(), standards)
 	return standards
 }
 
 // Post will save the Standard
-func (Standard) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string, standardType StandardInt) (int, interface{}) {
+func (Standard) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string, standardType StandardInt) (int, interface{}) {
 	body := request.Body
 	log.Printf("Received args : \n\t %+v\n", values)
 	decoder := json.NewDecoder(body)
@@ -228,48 +237,33 @@ func (Standard) Post(db *gorm.DB, values url.Values, request *http.Request, id i
 		return http.StatusBadRequest, "The object is null"
 	}
 	// we need to save the linked between the "standards" table and the typed standard table
-	err = stdStandard.save(db)
-	if err != nil {
-		return http.StatusInternalServerError, fmt.Sprintf("Could not save the standard : \n\t %s", err.Error())
-	}
-	standardTyped.SetID(stdStandard.ID)
 	err = standardTyped.Save(db)
 	if err != nil {
-		return http.StatusInternalServerError, fmt.Sprintf("Could Not Save the Standard : \n\t %s", err.Error())
+		log.Printf("Could not save the standard : \n\t %s", err.Error())
+		return http.StatusInternalServerError, fmt.Sprintf("Could not save the standard : \n\t %s", err.Error())
 	}
 	return http.StatusAccepted, standardTyped
 }
 
-func (s *Standard) save(db *gorm.DB) (err error) {
-	// If we have a new record we create it
-	if s.GetID() == 0 {
-		olds := new(Standard)
-		if errors.Is(db.Where("name = ? AND code = ?", s.GetName(), s.GetCode()).First(&olds).Error, gorm.ErrRecordNotFound) {
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(s).Error
-			if err != nil {
-				return
-			}
-		} else {
-			err = db.Model(olds).Updates(s).Error
-
-			if err != nil {
-				return
-			}
-
-			db.Model(olds).First(s, olds.ID)
-		}
-	} else {
-		err = db.Save(s).Error
-		if err != nil {
-			return
-		}
+func (s *Standard) save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[s.GetType()]
+	col := db.Collection(collectionName)
+	if s.ID == primitive.NilObjectID {
+		s.ID = primitive.NewObjectID()
+		log.Printf("Object of type %s is new inserting it into collection %s", s.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), s)
+		log.Print(res)
+		return
 	}
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": s.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, s, opts)
 	return
 }
 
 // Put updates Standard
-func (Standard) Put(db *gorm.DB, values url.Values, body io.ReadCloser, standardType StandardInt) (int, interface{}) {
+func (Standard) Put(db *mongo.Database, values url.Values, body io.ReadCloser, standardType StandardInt) (int, interface{}) {
 	fmt.Printf("Received args : \n\t %+v\n", values)
 	decoder := json.NewDecoder(body)
 	standard := reflect.New(reflect.TypeOf(standardType)).Elem().Interface().(StandardInt)

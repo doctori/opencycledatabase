@@ -1,14 +1,19 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const sCollection = "spokes"
 
 type Spoke struct {
 	Standard `gorm:"embedded" formType:"-"`
@@ -18,63 +23,55 @@ type Spoke struct {
 
 func NewSpoke() *Spoke {
 	s := new(Spoke)
-	s.Type = "Spoke"
+	s.Init()
+	handledStandard[s.Type] = sCollection
 	return s
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (s *Spoke) Init() {
+	s.Type = "Spoke"
+	s.CompatibleTypes = []string{
+		"Hub",
+		"Rim",
+	}
+	s.ID = primitive.NewObjectID()
+}
+
 // Get Spoke return the requests Spoke Standards ID
-func (s *Spoke) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (s *Spoke) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return s.Standard.Get(db, values, id, s, adj)
 }
 
 // Delete Spoke delete the requested Spoke standard ID
-func (s *Spoke) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (s *Spoke) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return s.Standard.Delete(db, values, id, s)
 }
 
 // Post Spoke delete the requested Spoke standard ID
-func (s *Spoke) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (s *Spoke) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return s.Standard.Post(db, values, request, id, adj, s)
 }
 
 // Put Spoke delete the requested Spoke standard ID
-func (s *Spoke) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (s *Spoke) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return s.Standard.Put(db, values, body, s)
 }
 
 // Save Spoke will register the crank into the database
-func (s *Spoke) Save(db *gorm.DB) (err error) {
-
-	// If we have a new record we create it
-	if s.GetID() == 0 {
-		oldc := new(Spoke)
-		if errors.Is(db.Where("name = ? AND code = ?", s.GetName(), s.GetCode()).First(&oldc).Error, gorm.ErrRecordNotFound) {
-			log.Println("==========================================================================================")
-			log.Println("Creating the record")
-			log.Printf("%#v", s)
-			log.Println("==========================================================================================")
-
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(s).Error
-			if err != nil {
-				return
-			}
-		} else {
-			log.Println("Updating the record")
-			log.Println(oldc)
-			err = db.Model(oldc).Updates(s).Error
-			if err != nil {
-				return
-			}
-			log.Println(oldc)
-			// TODO fix this
-			db.Model(oldc).First(s, oldc.ID)
-		}
-	} else {
-		err = db.Save(s).Error
-		if err != nil {
-			return
-		}
+func (s *Spoke) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[s.GetType()]
+	col := db.Collection(collectionName)
+	if s.ID == primitive.NilObjectID {
+		s.ID = primitive.NewObjectID()
+		log.Printf("Object of type %s is new inserting it into collection %s", s.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), s)
+		log.Print(res)
+		return
 	}
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": s.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, s, opts)
 	return
 }

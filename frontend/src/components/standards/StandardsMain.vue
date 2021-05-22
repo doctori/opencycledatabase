@@ -60,7 +60,7 @@ export default {
       standardTypes: [],
       standardID : '',
       selectedType: "",
-      selectedStandard : Object,
+      selectedStandard : Object(),
       displayMode: true,
       editMode: false,
       editMessage: "create"
@@ -94,7 +94,7 @@ export default {
     },
     setEditMode(standard){
       console.log(standard);
-      this.selectedStandard = standard;
+      //this.selectedStandard = standard;
       this.changeEditMode();
     },
     changeCreateMode(){
@@ -104,11 +104,11 @@ export default {
       
     },
     setSelectedType(selectedType){
-      this.selectedStandard = 0
+      this.selectedStandard.Type = selectedType
       http.get("/standards/"+selectedType.toLowerCase())
       .then(response =>{
         this.standards = response.data
-        console.log(this.standards.length);
+
       })
 
     },
@@ -116,6 +116,7 @@ export default {
       http.get("/standards/"+standardID)
       .then(response => {
         this.selectedStandard = response.data
+        console.log(this.selectedStandard)
 
       })
       // TODO : catch errors

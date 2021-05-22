@@ -1,14 +1,19 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const rdCollection = "rearderailleurs"
 
 type RearDerailleur struct {
 	Standard `gorm:"embedded" formType:"-"`
@@ -24,63 +29,55 @@ type RearDerailleur struct {
 
 func NewRearDerailleur() *RearDerailleur {
 	rd := new(RearDerailleur)
-	rd.Type = "RearDerailleur"
+	rd.Init()
+	handledStandard[rd.Type] = rdCollection
 	return rd
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (rd *RearDerailleur) Init() {
+	rd.Type = "RearDerailleur"
+	rd.CompatibleTypes = []string{
+		"Cassette",
+		"Frame",
+	}
+	rd.ID = primitive.NewObjectID()
+}
+
 // Get RearDerailleur return the requests RearDerailleur Standards ID
-func (rd *RearDerailleur) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (rd *RearDerailleur) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return rd.Standard.Get(db, values, id, rd, adj)
 }
 
 // Delete RearDerailleur delete the requested RearDerailleur standard ID
-func (rd *RearDerailleur) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (rd *RearDerailleur) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return rd.Standard.Delete(db, values, id, rd)
 }
 
 // Post RearDerailleur delete the requested RearDerailleur standard ID
-func (rd *RearDerailleur) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (rd *RearDerailleur) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return rd.Standard.Post(db, values, request, id, adj, rd)
 }
 
 // Put RearDerailleur delete the requested RearDerailleur standard ID
-func (rd *RearDerailleur) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (rd *RearDerailleur) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return rd.Standard.Put(db, values, body, rd)
 }
 
 // Save RearDerailleur will register the crank into the database
-func (rd *RearDerailleur) Save(db *gorm.DB) (err error) {
-
-	// If we have a new record we create it
-	if rd.GetID() == 0 {
-		oldc := new(RearDerailleur)
-		if errors.Is(db.Where("name = ? AND code = ?", rd.GetName(), rd.GetCode()).First(&oldc).Error, gorm.ErrRecordNotFound) {
-			log.Println("==========================================================================================")
-			log.Println("Creating the record")
-			log.Printf("%#v", rd)
-			log.Println("==========================================================================================")
-
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(rd).Error
-			if err != nil {
-				return
-			}
-		} else {
-			log.Println("Updating the record")
-			log.Println(oldc)
-			err = db.Model(oldc).Updates(rd).Error
-			if err != nil {
-				return
-			}
-			log.Println(oldc)
-			// TODO fix this
-			db.Model(oldc).First(rd, oldc.ID)
-		}
-	} else {
-		err = db.Save(rd).Error
-		if err != nil {
-			return
-		}
+func (rd *RearDerailleur) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[rd.GetType()]
+	col := db.Collection(collectionName)
+	if rd.ID == primitive.NilObjectID {
+		rd.ID = primitive.NewObjectID()
+		log.Printf("Object of type %s is new inserting it into collection %s", rd.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), rd)
+		log.Print(res)
+		return
 	}
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": rd.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, rd, opts)
 	return
 }

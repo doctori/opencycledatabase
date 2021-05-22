@@ -36,8 +36,8 @@
       </v-col>
       <v-col>
         Image
-        <upload-image v-if="!brand.Image" v-on:image-uploaded="setBrandImage"></upload-image>
-        <v-img eager=true :src="'http://localhost:8081:/'+imgSrc"></v-img>
+        <v-img :eager="true" :src="imgSrc" max-width="200"></v-img>
+        <upload-image v-on:image-uploaded="setBrandImage"></upload-image>
       </v-col>
     </v-row>
     <v-row>
@@ -76,7 +76,7 @@
 <script>
 import http from '../../common/http-common'
 import UploadImage from './../UploadImages'
-import ImageService from '../../services/ImagesService'
+import ImagesService from '../../services/ImagesService'
 export default {
   name: 'BrandCreate',
   components:{
@@ -98,12 +98,11 @@ export default {
   },  
   updated: function(){
 
-    if (this.brand.Image != 0 && this.imgID != this.brandInput.Image){
-      this.imgID = this.brandInput.Image
-      this.imgSrc = ImageService.getImagePath(this.imgID)
-    }else{
-      this.imgSrc = undefined
-    }
+   
+      ImagesService.getImagePath(this.brand.Image).then((result) =>{
+      console.log(result)
+      this.imgSrc = result
+    })
   },
   mounted: function (){
     http
@@ -112,7 +111,10 @@ export default {
           this.countryList = response.data
         ))
       if (this.brand.Image != 0){
-        this.imgSrc = ImageService.getImagePath(this.imgID)
+         ImagesService.getImagePath(this.imgID).then((result) =>{
+          console.log(result)
+          this.imgSrc = result
+        })
       }
   },
   methods: {
@@ -125,7 +127,7 @@ export default {
       this.brand.Image=image
     },
     submitBrand(){
-      if (this.brand.ID != 0){
+      if (this.brand.ID != 0 && this.brand.ID != undefined){
         console.log("we'll update the Brand "+this.brand.Name)
         http.post('/brands/'+this.brand.ID,this.brand)
         .then(result => (

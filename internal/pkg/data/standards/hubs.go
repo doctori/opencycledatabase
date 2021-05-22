@@ -1,14 +1,19 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const hCollection = "hubs"
 
 // Hub holds the information on the hub
 type Hub struct {
@@ -27,63 +32,63 @@ type Hub struct {
 
 func NewHub() *Hub {
 	h := new(Hub)
-	h.Type = "Hub"
+	h.Init()
+	handledStandard[h.Type] = hCollection
 	return h
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (h *Hub) Init() {
+	h.Type = "Hub"
+	h.CompatibleTypes = []string{
+		"Spoke",
+		"Disk",
+		"Axle",
+	}
+	h.ID = primitive.NewObjectID()
+}
+
 // Get Hub return the requests Hub Standards ID
-func (h *Hub) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (h *Hub) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return h.Standard.Get(db, values, id, h, adj)
 }
 
 // Delete Hub delete the requested Hub standard ID
-func (h *Hub) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (h *Hub) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return h.Standard.Delete(db, values, id, h)
 }
 
 // Post Hub delete the requested Hub standard ID
-func (h *Hub) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (h *Hub) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return h.Standard.Post(db, values, request, id, adj, h)
 }
 
 // Put Hub delete the requested Hub standard ID
-func (h *Hub) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (h *Hub) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return h.Standard.Put(db, values, body, h)
 }
 
 // Save Hub will register the crank into the database
-func (h *Hub) Save(db *gorm.DB) (err error) {
+func (h *Hub) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[h.GetType()]
+	col := db.Collection(collectionName)
+	upsert := false
+	if h.ID == primitive.NilObjectID {
+		h.Init()
+		upsert = true
+	}
 
-	// If we have a new record we create it
-	if h.GetID() == 0 {
-		oldc := new(Hub)
-		if errors.Is(db.Where("name = ? AND code = ?", h.GetName(), h.GetCode()).First(&oldc).Error, gorm.ErrRecordNotFound) {
-			log.Println("==========================================================================================")
-			log.Println("Creating the record")
-			log.Printf("%#v", h)
-			log.Println("==========================================================================================")
-
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(h).Error
-			if err != nil {
-				return
-			}
-		} else {
-			log.Println("Updating the record")
-			log.Println(oldc)
-			err = db.Model(oldc).Updates(h).Error
-			if err != nil {
-				return
-			}
-			log.Println(oldc)
-			// TODO fix this
-			db.Model(oldc).First(h, oldc.ID)
-		}
-	} else {
-		err = db.Save(h).Error
-		if err != nil {
-			return
-		}
+	opts := options.ReplaceOptions{
+		Upsert: &upsert,
+	}
+	filter := bson.M{"_id": h.ID}
+	log.Print(filter)
+	res := &mongo.UpdateResult{}
+	res, err = col.ReplaceOne(context.TODO(), &filter, h, &opts)
+	log.Printf("%#v", res)
+	if err != nil {
+		log.Printf("Could not save the Hub : %s", err.Error())
+		return
 	}
 	return
 }

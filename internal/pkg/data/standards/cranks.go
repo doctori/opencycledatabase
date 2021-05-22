@@ -1,14 +1,19 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const cCollection = "cranks"
 
 // Crank will define the Crank (not the crankset) standard
 type Crank struct {
@@ -23,63 +28,55 @@ type Crank struct {
 
 func NewCrank() *Crank {
 	c := new(Crank)
-	c.Type = "Crank"
+	c.Init()
+	handledStandard[c.Type] = cCollection
 	return c
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (c *Crank) Init() {
+	c.Type = "Crank"
+	c.CompatibleTypes = []string{
+		"BottomBracket",
+		"ChainRing",
+	}
+	c.ID = primitive.NewObjectID()
+}
+
 // Get Crank return the requests Crank Standards ID
-func (c *Crank) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
+func (c *Crank) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
 	return c.Standard.Get(db, values, id, c, adj)
 }
 
 // Delete Crank delete the requested Crank standard ID
-func (c *Crank) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (c *Crank) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	return c.Standard.Delete(db, values, id, c)
 }
 
 // Post Crank delete the requested Crank standard ID
-func (c *Crank) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (c *Crank) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	return c.Standard.Post(db, values, request, id, adj, c)
 }
 
 // Put Crank delete the requested Crank standard ID
-func (c *Crank) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (c *Crank) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return c.Standard.Put(db, values, body, c)
 }
 
 // Save Crank will register the crank into the database
-func (c *Crank) Save(db *gorm.DB) (err error) {
-
-	// If we have a new record we create it
-	if c.GetID() == 0 {
-		oldc := new(Crank)
-		if errors.Is(db.Where("name = ? AND code = ?", c.GetName(), c.GetCode()).First(&oldc).Error, gorm.ErrRecordNotFound) {
-			log.Println("==========================================================================================")
-			log.Println("Creating the record")
-			log.Printf("%#v", c)
-			log.Println("==========================================================================================")
-
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(c).Error
-			if err != nil {
-				return
-			}
-		} else {
-			log.Println("Updating the record")
-			log.Println(oldc)
-			err = db.Model(oldc).Updates(c).Error
-			if err != nil {
-				return
-			}
-			log.Println(oldc)
-			// TODO fix this
-			db.Model(oldc).First(c, oldc.ID)
-		}
-	} else {
-		err = db.Save(c).Error
-		if err != nil {
-			return
-		}
+func (c *Crank) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[c.GetType()]
+	col := db.Collection(collectionName)
+	if c.ID == primitive.NilObjectID {
+		c.ID = primitive.NewObjectID()
+		log.Printf("Object of type %s is new inserting it into collection %s", c.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), c)
+		log.Print(res)
+		return
 	}
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": c.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, c, opts)
 	return
 }

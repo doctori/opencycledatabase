@@ -1,46 +1,27 @@
 package data
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
-	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // InitDB will initialise the database connection and the scheme
-func InitDB(config *config.Config) *gorm.DB {
-	connectionString := fmt.Sprintf(
-		"user=%s password='%s' host=%s dbname=%s",
-		config.DB.Username,
-		config.DB.Password,
-		config.DB.Host,
-		config.DB.DBname)
+func InitDB(config *config.Config) *mongo.Database {
+	connectionString := fmt.Sprintf("mongodb://127.0.0.1:27017")
 	log.Printf("Connecting to %s", connectionString)
-	db, err := gorm.Open(
-		postgres.Open(connectionString),
-		&gorm.Config{DisableForeignKeyConstraintWhenMigrating: true})
-	checkErr(err, "Postgres Opening Failed")
-	// Debug Mode
-	db.Debug()
-	db.Logger.LogMode(logger.LogLevel(7))
-	db.AutoMigrate(&Image{}, &Brand{}, &Component{}, &Bike{})
-	// Standards
-	// FIXME : manage to use "managedresources" from api routes
-	db.AutoMigrate(
-		&standards.BottomBracket{},
-		&standards.ChainRing{},
-		&standards.Crank{},
-		&standards.FrontDerailleur{},
-		&standards.RearDerailleur{},
-		&standards.Headset{},
-		&standards.Hub{},
-	)
-	checkErr(err, "Create tables failed")
-
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	//defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionString))
+	checkErr(err, "Mongo Opening Failed")
+	db := client.Database("ocd")
+	err = db.Client().Ping(ctx, db.ReadPreference())
+	checkErr(err, "Mongo Opening Failed")
 	return db
 }
 

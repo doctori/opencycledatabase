@@ -1,8 +1,11 @@
 <template>
   <div>
+    <v-col>
+    <h2>{{brandInput.Name}}</h2>
+    </v-col>
     <v-col v-if="brandInput.Image != 0">
       Illustration : 
-      <v-img :src="imgSrc" max-width="350" >
+      <v-img :eager="true" :src="imgSrc" max-width="500">
       </v-img>
     </v-col>
     <v-col>
@@ -46,9 +49,14 @@ export default {
   },
   mounted: function(){
     this.imgID = this.brandInput.Image
-    this.imgSrc = ImagesService.getImagePath(this.imgID)
+    console.log(ImagesService.getImagePath(this.imgID))
+    ImagesService.getImagePath(this.imgID).then((result) =>{
+      console.log(result)
+      this.imgSrc = result
+    })
+    console.log("prout" + this.imgSrc)
   },
-  beforeUpdate: function(){
+  updated: function(){
     
     if (this.brandInput.Image != this.imgID){
       console.log("New Image ! "+this.brandInput.Image)

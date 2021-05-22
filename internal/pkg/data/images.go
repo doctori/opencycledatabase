@@ -1,7 +1,7 @@
 package data
 
 import (
-	"errors"
+	"context"
 	"io"
 	"log"
 	"mime"
@@ -11,31 +11,38 @@ import (
 	"os"
 	"strings"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const imageCollection = "images"
 
 // Image is the description and the pointer to the image
 type Image struct {
-	gorm.Model
-	Name          string `gorm:"uniqueIndex:image_uniqueness"`
-	Path          string `gorm:"uniqueIndex:image_uniqueness"`
-	Type          string
-	ContentType   string
-	ContentLength int64
-	Content       []byte `sql:"-"`
+	ID            primitive.ObjectID `bson:"_id"`
+	Name          string             `bson:"name"`
+	Path          string             `bson:"path"`
+	Type          string             `bson:"type"`
+	ContentType   string             `bson:"contentType"`
+	ContentLength int64              `bson:"contentLength"`
+	Content       []byte             `bson:"-"`
 	PutNotSupported
 	DeleteNotSupported
 }
 
 // Get will return the image (content type is image/jpeg)
 // TODO : make the content detection working
-func (Image) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
+func (Image) Get(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
 	var img Image
-	if id == 0 {
+	if id == primitive.NilObjectID {
 		return 200, img.List(db)
 	}
-	err := db.First(&img, id).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	col := db.Collection(imageCollection)
+	result := col.FindOne(context.TODO(), bson.M{"_id": id})
+	err := result.Decode(&img)
+	if err != nil {
 		return 404, "Image Not Found"
 	}
 	file, err := os.Open(img.Path)
@@ -58,7 +65,7 @@ func (Image) Get(db *gorm.DB, values url.Values, id int) (int, interface{}) {
 }
 
 // Post saves the images to the "upload" directory (shouldn't it go to S3 ? )
-func (Image) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
+func (Image) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	uploadFolder := "upload/"
 	mediaType, params, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
 	checkErr(err, "Could Not Determine the Content Type")
@@ -85,35 +92,33 @@ func (Image) Post(db *gorm.DB, values url.Values, request *http.Request, id int,
 		}
 		// Let's record this image and return it to our client
 		img = Image{Name: fileName, Path: filePath}
-		recordedImg := img.save(db)
+		img.save(db)
 		log.Printf("Posted : %#v", img)
-		return 200, recordedImg
+		return 200, img
 	}
 
 	return 200, img
 }
-func (Image) List(db *gorm.DB) (images []Image) {
-	result := db.Find(&images)
-	if result.Error != nil {
-		log.Printf("Could not list all images ! because %s", result.Error.Error())
+func (Image) List(db *mongo.Database) (images []Image) {
+	col := db.Collection(imageCollection)
+	cursor, err := col.Find(context.TODO(), bson.M{})
+	if err != nil {
+		log.Panicf("Could not make a list of images %s", err.Error())
 	}
+	cursor.All(context.TODO(), &images)
 	return
 }
-func (i Image) save(db *gorm.DB) Image {
-	if i.ID == 0 {
-		oldi := new(Image)
-		db.Where("name = ? and path = ? ", i.Name, i.Path).First(&oldi)
-		if oldi.Name == "" {
-			log.Println("Recording the New Image")
-			db.Create(&i)
-		} else {
-			log.Println("Updating The Image Record")
-			db.Model(&oldi).Updates(&i)
-			i = *oldi
-			log.Printf("Saving Image %#v", i)
-		}
-	} else {
-		db.Create(&i)
+func (i *Image) save(db *mongo.Database) (err error) {
+	col := db.Collection(imageCollection)
+	if i.ID == primitive.NilObjectID {
+		i.ID = primitive.NewObjectID()
+		_, err = col.InsertOne(context.TODO(), i)
+		return
 	}
-	return i
+
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": i.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, i, opts)
+
+	return
 }

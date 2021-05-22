@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/data"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // TODO : move to gorilla mux ...
@@ -20,10 +20,10 @@ import (
 // Resource will define the generic API resource methods
 // NonJSONResource hold the files images and other objects
 type NonJSONResource interface {
-	Get(db *gorm.DB, values url.Values, id int) (int, interface{})
-	Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{})
-	Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{})
-	Delete(db *gorm.DB, values url.Values, id int) (int, interface{})
+	Get(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{})
+	Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{})
+	Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{})
+	Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{})
 }
 
 // NonJSONData represent any content that is not JSon, mostly images
@@ -36,8 +36,8 @@ type NonJSONData interface {
 // API is the generic "API" model
 type API struct{}
 
-func (api *API) splitPath(path string, resourceType string) (id int, adj string) {
-	id = 0
+func (api *API) splitPath(path string, resourceType string) (id primitive.ObjectID, adj string) {
+	id = primitive.NilObjectID
 	adj = ""
 	// Retrieve the path after the resource ID
 	// the index 0 of the splitted Path is "/"
@@ -47,7 +47,12 @@ func (api *API) splitPath(path string, resourceType string) (id int, adj string)
 	splittedPath := strings.Split(path, "/")
 	pathLength := len(splittedPath)
 	if pathLength >= 3 {
-		id, _ = strconv.Atoi(strings.Replace(splittedPath[2], "/", "", -1))
+		idStr := strings.Replace(splittedPath[2], "/", "", -1)
+		var err error
+		id, err = primitive.ObjectIDFromHex(idStr)
+		if err != nil {
+			log.Printf("could not parse ID from URL : %s", err.Error())
+		}
 		if pathLength == 4 {
 			adj = strings.Replace(splittedPath[3], "/", "", -1)
 		}
@@ -64,7 +69,7 @@ func (api *API) Abort(rw http.ResponseWriter, statusCode int) {
 /*
 * Method to handle Non Json Data (Basicaly Images)
  */
-func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, resourceType string) http.HandlerFunc {
+func (api *API) nonJSONrequestHandler(db *mongo.Database, resource NonJSONResource, resourceType string) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
 		var content []byte
 		var data interface{}
@@ -117,7 +122,7 @@ func (api *API) nonJSONrequestHandler(db *gorm.DB, resource NonJSONResource, res
 		rw.Write(content)
 	}
 }
-func (api *API) requestHandler(db *gorm.DB, resource data.Resource, resourceType string, isPrefixed bool) http.HandlerFunc {
+func (api *API) requestHandler(db *mongo.Database, resource data.Resource, resourceType string, isPrefixed bool) http.HandlerFunc {
 	return func(rw http.ResponseWriter, request *http.Request) {
 
 		var data interface{}
@@ -132,20 +137,30 @@ func (api *API) requestHandler(db *gorm.DB, resource data.Resource, resourceType
 		// the index 1 is the resource type (can differ from the resourceType)(in case of a santard it's just standard)
 		// the index 2 if exists is the resource id (in case of a standard it's the standard type)
 		// the index 3 if exists is the adjective (incase of a standard it's the standard ID)
-		id := 0
+		id := primitive.NilObjectID
 		adj := ""
+		var err error
 		pathLength := len(splittedPath)
 		if isPrefixed {
 			log.Print("We are a standard !")
+
 			if pathLength >= 4 {
-				id, _ = strconv.Atoi(strings.Replace(splittedPath[3], "/", "", -1))
+				id, err = primitive.ObjectIDFromHex(strings.Replace(splittedPath[3], "/", "", -1))
+				if err != nil {
+					log.Printf("Whow the given ID looks shitty : %s", err.Error())
+					return
+				}
 				if pathLength == 5 {
 					adj = strings.Replace(splittedPath[4], "/", "", -1)
 				}
 			}
 		} else {
 			if pathLength >= 3 {
-				id, _ = strconv.Atoi(strings.Replace(splittedPath[2], "/", "", -1))
+				id, err = primitive.ObjectIDFromHex(strings.Replace(splittedPath[2], "/", "", -1))
+				if err != nil {
+					log.Printf("Whow the given ID looks shitty : %s", err.Error())
+					return
+				}
 				if pathLength == 4 {
 					adj = strings.Replace(splittedPath[3], "/", "", -1)
 				}
@@ -205,7 +220,7 @@ func (api *API) returnStandardsLists() http.HandlerFunc {
 }
 
 // AddResource add path to the http Handler
-func (api *API) AddResource(db *gorm.DB, resource data.Resource, path string) {
+func (api *API) AddResource(db *mongo.Database, resource data.Resource, path string) {
 	// Retrieve the Type Name of the Resource (Bike, Component etc ...)
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
 	subPath := ""
@@ -223,7 +238,7 @@ func (api *API) AddResource(db *gorm.DB, resource data.Resource, path string) {
 }
 
 // AddNonJSONResource will add a non json Handler
-func (api *API) AddNonJSONResource(db *gorm.DB, resource NonJSONResource, path string) {
+func (api *API) AddNonJSONResource(db *mongo.Database, resource NonJSONResource, path string) {
 	resourceType := strings.ToLower(reflect.TypeOf(resource).Elem().Name())
 	subPath := ""
 	if path != "" {

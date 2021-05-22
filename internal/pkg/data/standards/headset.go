@@ -1,14 +1,19 @@
 package standards
 
 import (
-	"errors"
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+const hsCollection = "headsets"
 
 // Headset, holds the specs for a Front Derailleur
 type Headset struct {
@@ -22,63 +27,55 @@ type Headset struct {
 
 func NewHeadset() *Headset {
 	hs := new(Headset)
-	hs.Type = "Headset"
+	hs.Init()
+	handledStandard[hs.Type] = hsCollection
 	return hs
 }
 
+// Init will setup a few fields that are immutable to the struct
+func (hs *Headset) Init() {
+	hs.Type = "Headset"
+	hs.CompatibleTypes = []string{
+		"Frame",
+		"Fork",
+	}
+	hs.ID = primitive.NewObjectID()
+}
+
 // Get Headset return the requests Headset Standards ID
-func (rd *Headset) Get(db *gorm.DB, values url.Values, id int, adj string) (int, interface{}) {
-	return rd.Standard.Get(db, values, id, rd, adj)
+func (hs *Headset) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{}) {
+	return hs.Standard.Get(db, values, id, hs, adj)
 }
 
 // Delete Headset delete the requested Headset standard ID
-func (rd *Headset) Delete(db *gorm.DB, values url.Values, id int) (int, interface{}) {
-	return rd.Standard.Delete(db, values, id, rd)
+func (hs *Headset) Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{}) {
+	return hs.Standard.Delete(db, values, id, hs)
 }
 
 // Post Headset delete the requested Headset standard ID
-func (rd *Headset) Post(db *gorm.DB, values url.Values, request *http.Request, id int, adj string) (int, interface{}) {
-	return rd.Standard.Post(db, values, request, id, adj, rd)
+func (hs *Headset) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
+	return hs.Standard.Post(db, values, request, id, adj, hs)
 }
 
 // Put Headset delete the requested Headset standard ID
-func (rd *Headset) Put(db *gorm.DB, values url.Values, body io.ReadCloser) (int, interface{}) {
+func (rd *Headset) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return rd.Standard.Put(db, values, body, rd)
 }
 
 // Save Headset will register the crank into the database
-func (rd *Headset) Save(db *gorm.DB) (err error) {
-
-	// If we have a new record we create it
-	if rd.GetID() == 0 {
-		oldc := new(Headset)
-		if errors.Is(db.Where("name = ? AND code = ?", rd.GetName(), rd.GetCode()).First(&oldc).Error, gorm.ErrRecordNotFound) {
-			log.Println("==========================================================================================")
-			log.Println("Creating the record")
-			log.Printf("%#v", rd)
-			log.Println("==========================================================================================")
-
-			// We update our just created object in order to add it's associations ...
-			err = db.Save(rd).Error
-			if err != nil {
-				return
-			}
-		} else {
-			log.Println("Updating the record")
-			log.Println(oldc)
-			err = db.Model(oldc).Updates(rd).Error
-			if err != nil {
-				return
-			}
-			log.Println(oldc)
-			// TODO fix this
-			db.Model(oldc).First(rd, oldc.ID)
-		}
-	} else {
-		err = db.Save(rd).Error
-		if err != nil {
-			return
-		}
+func (hs *Headset) Save(db *mongo.Database) (err error) {
+	collectionName := handledStandard[hs.GetType()]
+	col := db.Collection(collectionName)
+	if hs.ID == primitive.NilObjectID {
+		hs.ID = primitive.NewObjectID()
+		log.Printf("Object of type %s is new inserting it into collection %s", hs.GetType(), collectionName)
+		var res = &mongo.InsertOneResult{}
+		res, err = col.InsertOne(context.TODO(), hs)
+		log.Print(res)
+		return
 	}
+	opts := options.Update().SetUpsert(true)
+	filter := bson.M{"_id": hs.ID}
+	_, err = col.UpdateOne(context.TODO(), filter, hs, opts)
 	return
 }
