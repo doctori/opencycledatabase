@@ -88,7 +88,7 @@ func (api *API) addStandard(db *mongo.Database, resource data.Resource) {
 	path := fmt.Sprintf("/standards/%v", strings.ToLower(resourceType))
 	subPath := fmt.Sprintf("/standards/%v/", strings.ToLower(resourceType))
 	componentsPath := fmt.Sprintf("/standards/%v/components", strings.ToLower(resourceType))
-	log.Debug("adding path %v for resource %v", path, resource)
+	log.Debugf("adding path [%s] for resource %s", path, resourceType)
 	http.HandleFunc(path, api.requestHandler(db, resource, resourceType, true))
 	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType, true))
 	http.HandleFunc(componentsPath, api.requestHandler(db, resource, resourceType, true))

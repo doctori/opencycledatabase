@@ -15,12 +15,12 @@ import (
 // InitDB will initialise the database connection and the scheme
 func InitDB(config *config.Config) *mongo.Database {
 	connectionString := fmt.Sprintf("mongodb://%s:%d", config.DB.Host, config.DB.Port)
-	log.Printf("Connecting to %s", connectionString)
+	log.Infof("Connecting to %s", connectionString)
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	//defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionString))
 	checkErr(err, "Mongo Opening Failed")
-	db := client.Database("ocd")
+	db := client.Database(config.DB.DBname)
 	err = db.Client().Ping(ctx, db.ReadPreference())
 	checkErr(err, "Mongo Opening Failed")
 	return db

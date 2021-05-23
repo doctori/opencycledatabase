@@ -1,13 +1,16 @@
 {
 	"db":{
 		"host":"localhost",
-		"username":"obd",
-		"password":"obd",
-		"port":5432,
-		"dbname":"odb"
+		"username":"ocd",
+		"password":"ocd",
+		"port":27017,
+		"dbname":"ocd"
 	},
 	"API":{
 		"bindIP": "127.0.0.1",
 		"bindPort": 8081
+	}
+	"log":{
+		"level":6
 	}
 }

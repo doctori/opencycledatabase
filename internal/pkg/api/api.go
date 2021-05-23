@@ -232,7 +232,7 @@ func (api *API) AddResource(db *mongo.Database, resource data.Resource, path str
 		subPath = fmt.Sprintf("/%v/", resourceType)
 
 	}
-	log.Printf("adding path %v", path)
+	log.Debugf("adding path [%v] for resource %s", path, resourceType)
 	http.HandleFunc(path, api.requestHandler(db, resource, resourceType, false))
 	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType, false))
 
@@ -249,7 +249,7 @@ func (api *API) AddNonJSONResource(db *mongo.Database, resource NonJSONResource,
 		subPath = fmt.Sprintf("/%v/", resourceType)
 
 	}
-	log.Printf("adding path %v", path)
+	log.Debugf("adding path [%v] for resource %s", path, resourceType)
 	http.HandleFunc(path, api.nonJSONrequestHandler(db, resource, resourceType))
 	http.HandleFunc(subPath, api.nonJSONrequestHandler(db, resource, resourceType))
 
