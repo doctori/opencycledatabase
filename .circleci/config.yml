@@ -30,7 +30,7 @@ jobs:
           name: Install Dependencies
           command: |
             cd frontend
-            npm run install --legacy-peer-deps
+            npm install --legacy-peer-deps
       - run:
           name: Build app
           command: cd frontend && npm run build --production
