@@ -44,9 +44,9 @@ jobs:
               }
             }
             JSON
-            /kaniko/executor
-            --dockerfile "Dockerfile"
-            --context "frontend"
+            /kaniko/executor \
+            --dockerfile "Dockerfile" \
+            --context "frontend" \
             --destination "doctori/opencycledatabase-frontend:latest"
 
 workflows:
