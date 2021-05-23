@@ -189,6 +189,7 @@ export default {
       this.std = this.standardInput;
     }
     this.getStandardDefintion(this.standardType);
+    this.getPossibleCompatibleStandard(this.standardType);
   },
   methods: {
     includeFields(field){

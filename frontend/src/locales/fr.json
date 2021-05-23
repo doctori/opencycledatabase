@@ -27,7 +27,9 @@
     "rear_derailleur": "Derailleur arriere",
     "spoke": "Rayon",
     "thread": "Pas de vis",
-    "wheel": "Roue"
+    "wheel": "Roue",
+    "seat_tube": "Tige de selle",
+    "frame": "Cadre"
   },
   "components": {
     "title": "Composants",

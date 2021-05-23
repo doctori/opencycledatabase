@@ -26,11 +26,6 @@ ENTRYPOINT = $(REPOPATH)/cmd/opencycledatabase
 dist/ocd : $(GO_FILES)
 	GOARCH=$(GOARCH) GOOS=linux CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o $@ $(ENTRYPOINT)
 
-.PHONY: images
-images:
-	docker build ${BUILD_ARG} --build-arg=GOARCH=$(GOARCH) -t $(REGISTRY):latest -f deploy/Dockerfile .
-	
-.PHONY: push
-push:
-	docker push $(REGISTRY):latest
-	
+.PHONY: clean
+clean : 
+	rm -rf dist/*

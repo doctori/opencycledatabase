@@ -26,7 +26,9 @@
     "wheel": "Wheel",
     "spoke": "Spoke",
     "thread": "Thread",
-    "chainring": "Chainring"
+    "chainring": "Chainring",
+    "seat_tube": "Seat tube",
+    "frame": "Frame"
   },
   "components": {
     "title": "Components",
