@@ -29,5 +29,5 @@ workflows:
       - build
       - kaniko-publish/publish:
           image: doctori/opencycledatabase
-          tag: latest
+          
           path: frontend
