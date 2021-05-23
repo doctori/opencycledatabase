@@ -14,8 +14,13 @@ type APIConfig struct {
 	BindPort int    `json:"bindPort"`
 }
 
+type LogConfig struct {
+	Level int `json:"level"`
+}
+
 // Config holds the main configuration of the application
 type Config struct {
 	DB  DBConfig  `json:"db"`
 	API APIConfig `json:"API"`
+	Log LogConfig `json:"log"`
 }

@@ -2,9 +2,10 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
 	"github.com/doctori/opencycledatabase/internal/pkg/data"
@@ -44,7 +45,7 @@ func (api *API) Init(db *mongo.Database, conf *config.Config) {
 	api.AddNonJSONResource(db, image, "/images")
 
 	// Once all standards have been routed, migrate their model
-	fmt.Printf("Listening To %s:%d \n", conf.API.BindIP, conf.API.BindPort)
+	log.Infof("Listening To %s:%d \n", conf.API.BindIP, conf.API.BindPort)
 	api.Start(conf.API.BindIP, conf.API.BindPort)
 }
 
@@ -72,7 +73,7 @@ func (api *API) addStaticDir(directory string) {
 	fs := http.FileServer(http.Dir(directory))
 
 	directory = strings.TrimLeft(directory, ". ")
-	log.Printf("Adding static directory %s", directory)
+	log.Debugf("Adding static directory %s", directory)
 	http.Handle("/upload/", wrapHandler(http.StripPrefix(directory, fs)))
 
 }
@@ -87,7 +88,7 @@ func (api *API) addStandard(db *mongo.Database, resource data.Resource) {
 	path := fmt.Sprintf("/standards/%v", strings.ToLower(resourceType))
 	subPath := fmt.Sprintf("/standards/%v/", strings.ToLower(resourceType))
 	componentsPath := fmt.Sprintf("/standards/%v/components", strings.ToLower(resourceType))
-	log.Printf("adding path %v for resource %#v", path, resource)
+	log.Debug("adding path %v for resource %v", path, resource)
 	http.HandleFunc(path, api.requestHandler(db, resource, resourceType, true))
 	http.HandleFunc(subPath, api.requestHandler(db, resource, resourceType, true))
 	http.HandleFunc(componentsPath, api.requestHandler(db, resource, resourceType, true))

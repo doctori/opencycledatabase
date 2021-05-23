@@ -3,13 +3,14 @@ package data
 import (
 	"context"
 	"io"
-	"log"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

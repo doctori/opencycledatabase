@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/data"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -81,7 +82,7 @@ func (api *API) nonJSONrequestHandler(db *mongo.Database, resource NonJSONResour
 		id, adj := api.splitPath(request.URL.Path, resourceType)
 
 		body := request.Body
-		fmt.Printf("Received: %s with args : \n\t %+v\n", method, values)
+		log.Debugf("Received: %s with args : \n\t %+v\n", method, values)
 		switch method {
 		case http.MethodGet:
 			code, data = resource.Get(db, values, id)

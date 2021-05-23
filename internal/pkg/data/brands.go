@@ -3,9 +3,10 @@ package data
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
+
+	log "github.com/sirupsen/logrus"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

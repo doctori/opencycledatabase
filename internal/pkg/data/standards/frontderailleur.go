@@ -3,9 +3,10 @@ package standards
 import (
 	"context"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
+
+	log "github.com/sirupsen/logrus"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

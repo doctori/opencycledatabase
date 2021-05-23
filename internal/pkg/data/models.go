@@ -7,10 +7,11 @@ import (
 
 	// import png support
 	_ "image/png"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
 	"go.mongodb.org/mongo-driver/bson"

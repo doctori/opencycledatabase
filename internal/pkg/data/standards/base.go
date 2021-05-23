@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"reflect"
+
+	log "github.com/sirupsen/logrus"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -272,7 +273,7 @@ func (s *Standard) save(db *mongo.Database) (err error) {
 
 // Put updates Standard
 func (Standard) Put(db *mongo.Database, values url.Values, body io.ReadCloser, standardType StandardInt) (int, interface{}) {
-	fmt.Printf("Received args : \n\t %+v\n", values)
+	log.Debugf("Received args : \n\t %+v", values)
 	decoder := json.NewDecoder(body)
 	standard := reflect.New(reflect.TypeOf(standardType)).Elem().Interface().(StandardInt)
 	err := decoder.Decode(&standard)

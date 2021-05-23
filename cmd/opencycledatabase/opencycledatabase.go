@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/api"
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
@@ -32,12 +33,14 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&conf)
-	log.Printf("%#v", conf)
+
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	log.SetLevel(log.Level(conf.Log.Level))
+	log.Info("Init Phase of OCD")
 	db = data.InitDB(conf)
 }

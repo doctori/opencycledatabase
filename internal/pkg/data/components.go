@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
 	"go.mongodb.org/mongo-driver/bson"
@@ -44,7 +45,7 @@ type ComponentInt interface {
 // Post will save the component in database
 func (Component) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{}) {
 	body := request.Body
-	fmt.Printf("Received args : \n\t %+v\n", body)
+	log.Debugf("Received args : \n\t %+v", body)
 	decoder := json.NewDecoder(body)
 	var component Component
 	err := decoder.Decode(&component)

@@ -3,8 +3,9 @@ package data
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,7 +14,7 @@ import (
 
 // InitDB will initialise the database connection and the scheme
 func InitDB(config *config.Config) *mongo.Database {
-	connectionString := fmt.Sprintf("mongodb://127.0.0.1:27017")
+	connectionString := fmt.Sprintf("mongodb://%s:%d", config.DB.Host, config.DB.Port)
 	log.Printf("Connecting to %s", connectionString)
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	//defer cancel()
