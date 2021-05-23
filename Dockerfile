@@ -5,10 +5,10 @@ RUN echo $GOARCH > /goarch
 
 WORKDIR /go/src/github.com/doctori/opencycledatabase
 COPY . .
-RUN make GOARCH=$(cat /goarch.txt)
+RUN make GOARCH=$(cat /goarch)
 
 FROM scratch
-copy dist/ocd /
+copy --from=0 dist/ocd /
 expose 8080
 VOLUME ["/tmp"]
 ENTRYPOINT ["/ocd"]
