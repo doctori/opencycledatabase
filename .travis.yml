@@ -1,9 +1,16 @@
+services:
+  - docker
 matrix:
   include:
     - language: go
       go:
         - "1.15"
-      script: go build -o=ocd github.com/doctori/opencycledatabase/cmd/opencycledatabase
+      before_script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      script: go build -o=dist/ocd github.com/doctori/opencycledatabase/cmd/opencycledatabase
+      after_success:
+        - docker build -t doctori/opencycledatabase:latest .
+        - docker push doctori/opencycledatabase:latest
     - language: node.js
       node_js: "12"
       before_script:
