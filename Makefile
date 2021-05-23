@@ -23,7 +23,7 @@ GO_LDFLAGS += '
 
 ENTRYPOINT = $(REPOPATH)/cmd/opencycledatabase
 
-out/ocd : $(GO_FILES)
+dist/ocd : $(GO_FILES)
 	GOARCH=$(GOARCH) GOOS=linux CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o $@ $(ENTRYPOINT)
 
 .PHONY: images
