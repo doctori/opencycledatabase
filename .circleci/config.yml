@@ -34,5 +34,9 @@ jobs:
       - run:
           name: Build app
           command: cd frontend && npm run build --production
-
-
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      - build_frontend
