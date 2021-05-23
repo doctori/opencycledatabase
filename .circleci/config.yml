@@ -1,7 +1,10 @@
 # Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
-orbs:
-  kaniko-publish: freeletics/kaniko-publish@0.2.0
+executors:
+  kaniko: 
+    docker:
+      - image: freeletics/kaniko-executor:latest
+
 jobs:
   build:
     working_directory: ~/repo
@@ -22,12 +25,22 @@ jobs:
       - run:
           name: Build app
           command: go build -o=ocd github.com/doctori/opencycledatabase/cmd/opencycledatabase
+  build_frontend:
+    executor: kaniko
+    steps: 
+      - checkout
+      - run:
+          name: "kaniko build and publish frontend"
+          shell: /bin/sh -uxeo pipefail
+          command: >-
+            /kaniko/executor
+            --dockerfile "Dockerfile"
+            --context "frontend"
+            --destination "doctori/opencycledatabase-frontend:latest"
+
 workflows:
   version: 2
   build:
     jobs:
       - build
-      - kaniko-publish/publish:
-          image: doctori/opencycledatabase
-          
-          path: frontend
+      - build_frontend
