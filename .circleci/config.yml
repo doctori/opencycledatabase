@@ -20,4 +20,19 @@ jobs:
       - run:
           name: Build app
           command: go build -o=ocd github.com/doctori/opencycledatabase/cmd/opencycledatabase
+  build_frontend:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/node:16.2.0
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            cd frontend
+            npm run install --legacy-peer-deps
+      - run:
+          name: Build app
+          command: cd frontend && npm run build --production
+
 
