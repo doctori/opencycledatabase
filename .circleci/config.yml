@@ -31,7 +31,7 @@ jobs:
       - checkout
       - run:
           name: "kaniko build and publish frontend"
-          shell: /bin/sh -uxeo pipefail
+          shell: /bin/bash -eo pipefail
           command: >-
             /kaniko/executor
             --dockerfile "Dockerfile"
