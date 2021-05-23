@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -19,7 +21,7 @@ import (
 
 // TODO remove this shit from here
 // this should be controlled by the API not the datamodel
-const defaultPerPage int = 30
+const defaultPerPage int64 = 30
 
 var handledStandard map[string]string
 
@@ -33,12 +35,12 @@ type StandardInt interface {
 	GetCompatibleTypes() []string
 	GetType() string
 	IsNul() bool
+	Init()
 	//GetCompatible() []StandardInt
 	Get(db *mongo.Database, values url.Values, id primitive.ObjectID, adj string) (int, interface{})
 	Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string) (int, interface{})
 	Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{})
 	Delete(db *mongo.Database, values url.Values, id primitive.ObjectID) (int, interface{})
-	Save(db *mongo.Database) (err error)
 }
 
 // Standard define the generic common Standard properties
@@ -122,6 +124,11 @@ func GetFormFields(s StandardInt) map[string]FieldForm {
 	log.Printf("Kind: %s\n", t.Kind())
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
+		// use the json name wichi isn't capitalized
+		jsonValue, ok := field.Tag.Lookup("json")
+		if ok {
+			field.Name = jsonValue
+		}
 		typeTag := field.Tag.Get("formType")
 		if typeTag == "-" {
 			continue
@@ -157,8 +164,15 @@ func GetFormFields(s StandardInt) map[string]FieldForm {
 // Get Standard return the requests Standards (given the type of standard requested)
 func (Standard) Get(db *mongo.Database, values url.Values, id primitive.ObjectID, standardType StandardInt, adj string) (int, interface{}) {
 	log.Printf("having Get for standard [%#v] with ID : %d", standardType, id)
-	page := values.Get("page")
-	perPage := values.Get("per_page")
+	page, err := strconv.ParseInt(values.Get("page"), 10, 64)
+	if err != nil {
+		page = 0
+	}
+	// Retrieve the per_page arg, if not a number default to 30
+	perPage, err := strconv.ParseInt(values.Get("per_page"), 10, 64)
+	if err != nil {
+		perPage = defaultPerPage
+	}
 
 	structOnly := values.Get("struct_only")
 	// List possible Compatible types
@@ -175,7 +189,7 @@ func (Standard) Get(db *mongo.Database, values url.Values, id primitive.ObjectID
 	// Let Display All that We Have
 	// Someday Pagination will be there
 	if id == primitive.NilObjectID {
-		log.Print("returning every items")
+		log.Debug("returning every items")
 		return 200, GetAll(db, page, perPage, standardType)
 	}
 	// retrieve collections from handled standards
@@ -194,39 +208,33 @@ func (Standard) Get(db *mongo.Database, values url.Values, id primitive.ObjectID
 }
 
 // GetAll will returns al the standards
-func GetAll(db *mongo.Database, page string, perPage string, standardType StandardInt) interface{} {
-	/*ipage, err := strconv.Atoi(page)
-	if err != nil {
-		ipage = 0
-	}
-	// Retrieve the per_page arg, if not a number default to 30
-	iperPage, err := strconv.Atoi(perPage)
-	if err != nil {
-		iperPage = defaultPerPage
-	}
-	*/
-	//db.Preload("Components").Preload("Components.Standards").Find(&bikes) // Don't Need to load every Component for the main List
+func GetAll(db *mongo.Database, page int64, perPage int64, standardType StandardInt) interface{} {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	sType := reflect.TypeOf(standardType)
 	standards := reflect.New(reflect.SliceOf(sType)).Interface()
 
-	log.Printf("%#v\n", standards)
 	collectionName := handledStandard[standardType.GetType()]
 	collection := db.Collection(collectionName)
-	// TODO : pagination
-	cursor, err := collection.Find(context.TODO(), bson.M{})
+	skip := page * perPage
+	findOpt := options.FindOptions{
+		Limit: &perPage,
+		Skip:  &skip,
+	}
+	cursor, err := collection.Find(ctx, bson.M{}, &findOpt)
 	if err != nil {
 		log.Printf("Whow would not get all standards %s", err.Error())
 	}
-	cursor.All(context.TODO(), standards)
+	cursor.All(ctx, standards)
+
 	return standards
 }
 
 // Post will save the Standard
 func (Standard) Post(db *mongo.Database, values url.Values, request *http.Request, id primitive.ObjectID, adj string, standardType StandardInt) (int, interface{}) {
 	body := request.Body
-	log.Printf("Received args : \n\t %+v\n", values)
+	log.Debugf("Received args : \n\t %+v", values)
 	decoder := json.NewDecoder(body)
-	log.Println(reflect.TypeOf(standardType))
 	standard := reflect.New(reflect.TypeOf(standardType).Elem()).Interface()
 
 	err := decoder.Decode(standard)
@@ -236,39 +244,18 @@ func (Standard) Post(db *mongo.Database, values url.Values, request *http.Reques
 	}
 
 	standardTyped := standard.(StandardInt)
-	stdStandard := Standard{
-		Type: standardTyped.GetType(),
-		Name: standardTyped.GetName(),
-	}
-	stdStandard.ID = standardTyped.GetID()
-	log.Printf("Saving : %#v", standardTyped)
 	if standardTyped.IsNul() {
 		return http.StatusBadRequest, "The object is null"
 	}
-	// we need to save the linked between the "standards" table and the typed standard table
-	err = standardTyped.Save(db)
+
+	log.Debugf("Saving : %#v", standardTyped)
+
+	standardTyped, err = save(db, standardTyped)
 	if err != nil {
-		log.Printf("Could not save the standard : \n\t %s", err.Error())
 		return http.StatusInternalServerError, fmt.Sprintf("Could not save the standard : \n\t %s", err.Error())
 	}
-	return http.StatusAccepted, standardTyped
-}
 
-func (s *Standard) save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[s.GetType()]
-	col := db.Collection(collectionName)
-	if s.ID == primitive.NilObjectID {
-		s.ID = primitive.NewObjectID()
-		log.Printf("Object of type %s is new inserting it into collection %s", s.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), s)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": s.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, s, opts)
-	return
+	return http.StatusCreated, standardTyped
 }
 
 // Put updates Standard
@@ -282,10 +269,29 @@ func (Standard) Put(db *mongo.Database, values url.Values, body io.ReadCloser, s
 		return http.StatusBadRequest, fmt.Sprintf("Could not unmarshal object : %s", err)
 
 	}
-	log.Println(standard)
-	err = standard.Save(db)
+	standardTyped := standard.(StandardInt)
+	standardTyped, err = save(db, standardTyped)
 	if err != nil {
-		return http.StatusInternalServerError, fmt.Sprintf("Could Not Save the Standard : \n\t%s", err.Error())
+		return http.StatusInternalServerError, fmt.Sprintf("Could not save the standard : \n\t %s", err.Error())
 	}
-	return http.StatusOK, standard
+	return http.StatusOK, standardTyped
+}
+
+func save(db *mongo.Database, st StandardInt) (StandardInt, error) {
+	upsert := false
+	if st.GetID() == primitive.NilObjectID {
+		st.Init()
+		upsert = true
+	}
+	col := db.Collection(handledStandard[st.GetType()])
+	opts := options.ReplaceOptions{
+		Upsert: &upsert,
+	}
+	filter := bson.M{"_id": st.GetID()}
+	_, err := col.ReplaceOne(context.TODO(), &filter, st, &opts)
+	if err != nil {
+		log.Warnf("Could not save the Standard : %s", err.Error())
+	}
+	return st, err
+
 }

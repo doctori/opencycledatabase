@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const bbCollection = "bottombrackets"
@@ -20,8 +15,7 @@ const bbCollection = "bottombrackets"
 type BottomBracket struct {
 	Standard `formType:"-"`
 	// Thread definition (if needed)
-	ThreadID int    `json:"-" fromType:"-"`
-	Thread   Thread `formType:"nested"`
+	Thread Thread `formType:"nested"`
 	// IsThreaded : true if  it's a threaded bottom bracket
 	IsThreaded bool `json:"isThreaded" formType:"bool"`
 	// IsPressFit : true if it's a pressfit bottom bracket
@@ -76,25 +70,4 @@ func (bb *BottomBracket) Put(db *mongo.Database, values url.Values, body io.Read
 
 func (bb *BottomBracket) GetCompatibleTypes() []string {
 	return bb.CompatibleTypes
-}
-
-// Save BottomBracket will register the BB into the database
-func (bb *BottomBracket) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[bb.GetType()]
-	col := db.Collection(collectionName)
-	if bb.ID == primitive.NilObjectID {
-		bb.Init()
-		log.Printf("Object of type %s is new inserting it into collection %s", bb.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), bb)
-		log.Print(res)
-		return
-	}
-	upsert := true
-	opts := options.FindOneAndUpdateOptions{
-		Upsert: &upsert,
-	}
-	filter := bson.M{"_id": bb.ID}
-	col.FindOneAndUpdate(context.TODO(), filter, bb, &opts)
-	return
 }

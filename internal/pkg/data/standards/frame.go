@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const fCollection = "frames"
@@ -88,22 +83,4 @@ func (f *Frame) Post(db *mongo.Database, values url.Values, request *http.Reques
 // Put Frame delete the requested Frame standard ID
 func (f *Frame) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return f.Standard.Put(db, values, body, f)
-}
-
-// Save Frame will register the Frame into the database
-func (f *Frame) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[f.GetType()]
-	col := db.Collection(collectionName)
-	if f.ID == primitive.NilObjectID {
-		f.ID = primitive.NewObjectID()
-		log.Printf("Object of type %s is new inserting it into collection %s", f.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), f)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": f.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, f, opts)
-	return
 }

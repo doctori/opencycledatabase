@@ -94,7 +94,7 @@ export default {
     },
     setEditMode(standard){
       console.log(standard);
-      //this.selectedStandard = standard;
+      this.selectedStandard = standard;
       this.changeEditMode();
     },
     changeCreateMode(){

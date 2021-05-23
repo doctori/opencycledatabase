@@ -186,6 +186,7 @@ func (api *API) requestHandler(db *mongo.Database, resource data.Resource, resou
 		default:
 			api.Abort(rw, 405)
 		}
+		log.Debug(data)
 		content, err := json.Marshal(data)
 		if err != nil {
 			api.Abort(rw, 500)

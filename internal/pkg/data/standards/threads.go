@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const tCollection = "threads"
@@ -66,22 +61,4 @@ func (t *Thread) Post(db *mongo.Database, values url.Values, request *http.Reque
 // Put Thread delete the requested Thread standard ID
 func (t *Thread) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return t.Standard.Put(db, values, body, t)
-}
-
-// Save Thread will register the t into the database
-func (t *Thread) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[t.GetType()]
-	col := db.Collection(collectionName)
-	if t.ID == primitive.NilObjectID {
-		t.ID = primitive.NewObjectID()
-		log.Printf("Object of type %s is new inserting it into collection %s", t.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), t)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": t.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, t, opts)
-	return
 }

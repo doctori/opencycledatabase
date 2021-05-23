@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const stCollection = "seattubes"
@@ -64,22 +59,4 @@ func (st *SeatTube) Post(db *mongo.Database, values url.Values, request *http.Re
 // Put SeatTube delete the requested SeatTube standard ID
 func (st *SeatTube) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return st.Standard.Put(db, values, body, st)
-}
-
-// Save SeatTube will register the SeatTube into the database
-func (st *SeatTube) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[st.GetType()]
-	col := db.Collection(collectionName)
-	if st.ID == primitive.NilObjectID {
-		st.ID = primitive.NewObjectID()
-		log.Printf("Object of type %s is new inserting it into collection %s", st.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), st)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": st.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, st, opts)
-	return
 }

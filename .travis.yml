@@ -1,4 +1,13 @@
-language: go
-go:
-- "1.15"
-script: go build -o=ocd github.com/doctori/opencycledatabase/cmd/opencycledatabase
+matrix:
+  include:
+    - language: go
+      go:
+        - "1.15"
+      script: go build -o=ocd github.com/doctori/opencycledatabase/cmd/opencycledatabase
+    - language: node.js
+      node_js: "12"
+      before_script:
+        - cd frontend
+      script:
+        - npm install
+        - npm build --production

@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const hCollection = "hubs"
@@ -71,27 +66,4 @@ func (h *Hub) Post(db *mongo.Database, values url.Values, request *http.Request,
 // Put Hub delete the requested Hub standard ID
 func (h *Hub) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return h.Standard.Put(db, values, body, h)
-}
-
-// Save Hub will register the crank into the database
-func (h *Hub) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[h.GetType()]
-	col := db.Collection(collectionName)
-	upsert := false
-	if h.ID == primitive.NilObjectID {
-		h.Init()
-		upsert = true
-	}
-
-	opts := options.ReplaceOptions{
-		Upsert: &upsert,
-	}
-	filter := bson.M{"_id": h.ID}
-	log.Print(filter)
-	_, err = col.ReplaceOne(context.TODO(), &filter, h, &opts)
-	if err != nil {
-		log.Printf("Could not save the Hub : %s", err.Error())
-		return
-	}
-	return
 }

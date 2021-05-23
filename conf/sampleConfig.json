@@ -9,7 +9,7 @@
 	"API":{
 		"bindIP": "127.0.0.1",
 		"bindPort": 8081
-	}
+	},
 	"log":{
 		"level":6
 	}

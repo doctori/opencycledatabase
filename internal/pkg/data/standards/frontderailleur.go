@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const fdCollection = "frontderailleurs"
@@ -75,22 +70,4 @@ func (fd *FrontDerailleur) Post(db *mongo.Database, values url.Values, request *
 // Put FrontDerailleur delete the requested FrontDerailleur standard ID
 func (fd *FrontDerailleur) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return fd.Standard.Put(db, values, body, fd)
-}
-
-// Save FrontDerailleur will register the crank into the database
-func (fd *FrontDerailleur) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[fd.GetType()]
-	col := db.Collection(collectionName)
-	if fd.ID == primitive.NilObjectID {
-		fd.ID = primitive.NewObjectID()
-		log.Printf("Object of type %s is new inserting it into collection %s", fd.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), fd)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": fd.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, fd, opts)
-	return
 }

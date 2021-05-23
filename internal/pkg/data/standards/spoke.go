@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const sCollection = "spokes"
@@ -61,22 +56,4 @@ func (s *Spoke) Post(db *mongo.Database, values url.Values, request *http.Reques
 // Put Spoke delete the requested Spoke standard ID
 func (s *Spoke) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return s.Standard.Put(db, values, body, s)
-}
-
-// Save Spoke will register the crank into the database
-func (s *Spoke) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[s.GetType()]
-	col := db.Collection(collectionName)
-	if s.ID == primitive.NilObjectID {
-		s.ID = primitive.NewObjectID()
-		log.Printf("Object of type %s is new inserting it into collection %s", s.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), s)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": s.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, s, opts)
-	return
 }

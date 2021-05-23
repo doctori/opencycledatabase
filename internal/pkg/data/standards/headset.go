@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const hsCollection = "headsets"
@@ -65,22 +60,4 @@ func (hs *Headset) Post(db *mongo.Database, values url.Values, request *http.Req
 // Put Headset delete the requested Headset standard ID
 func (rd *Headset) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return rd.Standard.Put(db, values, body, rd)
-}
-
-// Save Headset will register the crank into the database
-func (hs *Headset) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[hs.GetType()]
-	col := db.Collection(collectionName)
-	if hs.ID == primitive.NilObjectID {
-		hs.ID = primitive.NewObjectID()
-		log.Printf("Object of type %s is new inserting it into collection %s", hs.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), hs)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": hs.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, hs, opts)
-	return
 }

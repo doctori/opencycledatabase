@@ -16,8 +16,8 @@ import (
 func InitDB(config *config.Config) *mongo.Database {
 	connectionString := fmt.Sprintf("mongodb://%s:%d", config.DB.Host, config.DB.Port)
 	log.Infof("Connecting to %s", connectionString)
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionString))
 	checkErr(err, "Mongo Opening Failed")
 	db := client.Database(config.DB.DBname)

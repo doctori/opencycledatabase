@@ -1,17 +1,12 @@
 package standards
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const crCollection = "chainrings"
@@ -20,7 +15,7 @@ const crCollection = "chainrings"
 type ChainRing struct {
 	Standard `formType:"-"`
 	// BoltCircleDiameter of the chainring (ref : https://www.sheldonbrown.com/gloss_bo-z.html#bcd)
-	BoltCircleDiameter float32 `formType:"int" formUnit:"cm"`
+	BoltCircleDiameter float32 `formType:"int" formUnit:"mm"`
 	// BoltsNumber hold the number of bolt on the chainring
 	BoltsNumber int `formType:"int" formUnit:"count"`
 	// IsIntegrated is true if the chainring is soldered to the crank
@@ -70,22 +65,4 @@ func (cr *ChainRing) Post(db *mongo.Database, values url.Values, request *http.R
 // Put ChainRing delete the requested ChainRing standard ID
 func (cr *ChainRing) Put(db *mongo.Database, values url.Values, body io.ReadCloser) (int, interface{}) {
 	return cr.Standard.Put(db, values, body, cr)
-}
-
-// Save ChainRing will register the BB into the database
-func (cr *ChainRing) Save(db *mongo.Database) (err error) {
-	collectionName := handledStandard[cr.GetType()]
-	col := db.Collection(collectionName)
-	if cr.ID == primitive.NilObjectID {
-		cr.Init()
-		log.Printf("Object of type %s is new inserting it into collection %s", cr.GetType(), collectionName)
-		var res = &mongo.InsertOneResult{}
-		res, err = col.InsertOne(context.TODO(), cr)
-		log.Print(res)
-		return
-	}
-	opts := options.Update().SetUpsert(true)
-	filter := bson.M{"_id": cr.ID}
-	_, err = col.UpdateOne(context.TODO(), filter, cr, opts)
-	return
 }
