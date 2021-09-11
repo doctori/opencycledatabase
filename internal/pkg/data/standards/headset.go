@@ -15,10 +15,16 @@ const hsCollection = "headsets"
 type Headset struct {
 	Standard `formType:"-"`
 	// SHISAnnotation the actual S.H.I.S Annotation like ZS44/28.6"	SHISAnnotation string
-	SHISAnnotation string `formType:"string"`
+	SHISAnnotation string `formType:"string" bson:"SHISAnnotation"`
 	// TODO : be able to list the possible values
 	// FitType , is headset integrated or PressFit ?
-	FitType string `formType:"String"`
+	FitType string `formType:"string" bson:"fitType"`
+	// IsThreaded
+	IsThreaded bool `formType:"bool" bson:"isThreaded"`
+	//CrownRaceInside Diameter
+	CrownRaceInsideDiameter float32 `formType:"int" bson:"crownRaceInsideDiameter"`
+	// FrameCupOutsideDiameter
+	FrameCupOutsideDiameter float32 `formType:"int" bson:"frameCupOutsideDiameter"`
 }
 
 func NewHeadset() *Headset {

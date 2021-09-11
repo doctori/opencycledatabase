@@ -42,6 +42,7 @@
   "standards": {
     "new": "Créer un nouveau Standard",
     "compatibleWith": "Compatible avec",
-    "compatibleWithHint": "Liste des standards Compatible avec celui ci"
+    "compatibleWithHint": "Liste des standards Compatible avec celui ci",
+    "saved": "Standard Sauvegardé"
   }
 }

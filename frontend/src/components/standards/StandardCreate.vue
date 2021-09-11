@@ -94,13 +94,24 @@
         <v-btn block elevation="3" key="submit" v-on:click="submitStandard()">
           {{ $t('messages.save') }}
         </v-btn>
-
       </v-col>
+      
       <v-col>
         <v-btn block elevation="3" key="new" v-on:click="newStandard()">
           {{ $t('standards.new') }}
         </v-btn>
       </v-col>
+    </v-row>
+    <v-row>
+      <v-alert
+      :value="saved"
+      color="green"
+      border="top"
+      type="success"
+      transition="scale-transition"
+      >
+      {{ $t('standards.saved')}}
+      </v-alert>
     </v-row>
     <v-row>
       <v-col cols="2">
@@ -279,10 +290,14 @@ export default {
     submitStandard(){
       http
       .post('/standards/'+this.std.Type.toLowerCase(),this.std)
-      .then(result => (
+      .then(result => {
         this.std = result.data,
         this.saved = true
-      ))
+        setTimeout(function(){
+          this.saved = false
+        },150);
+      }
+        )
       .catch(error =>{
         console.log(error)
         this.saveError = error

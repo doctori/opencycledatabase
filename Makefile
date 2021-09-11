@@ -34,3 +34,10 @@ images:
 push:
 	docker push $(REGISTRY):latest
 	
+.PHONY: clean
+clean : 
+	rm -rf dist/*
+
+run:
+	GOARCH=$(GOARCH) GOOS=linux CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o dist/ocd $(ENTRYPOINT)
+	./dist/ocd

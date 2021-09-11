@@ -40,6 +40,7 @@
   },
   "standards": {
     "new": "Create a new Standard",
-    "compatibleWithHint": "List of standards compatible with this one"
+    "compatibleWithHint": "List of standards compatible with this one",
+    "saved": "Standard Saved"
   }
 }
