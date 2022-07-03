@@ -41,7 +41,8 @@
 </template>
 
 <script>
-import http from "../../common/http-common";
+
+import BackendApiClient from "../../services/BackendApiClient";
 import BrandDisplay from "./BrandDisplay";
 import BrandCreate from './BrandCreate';
 export default {
@@ -62,7 +63,7 @@ export default {
     }
   },
   mounted(){
-    http.get("/brands")
+    BackendApiClient.get("/brands")
     .then(response => {
       this.brands = response.data
     }
@@ -87,7 +88,7 @@ export default {
       
     },
     setSelectedBrand(brandID){
-      http.get("/brands/"+brandID)
+      BackendApiClient.get("/brands/"+brandID)
       .then(response => {
         this.selectedBrand = response.data
       })

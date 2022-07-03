@@ -46,6 +46,7 @@
 
 <script>
 import http from '../../common/http-common'
+import BackendApiClient from '../../services/BackendApiClient'
 //import UploadImage from './../UploadImages'
 //import ImageService from '../../services/ImagesService'
 import UtilService from '../../services/UtilService'
@@ -94,7 +95,7 @@ export default {
   methods: {
     updateBrand(newBrandID){
       if (newBrandID != this.cpn.Brand.ID){
-        http.get('/brands/'+newBrandID)
+        BackendApiClient.get('/brands/'+newBrandID)
         .then(result => {
           this.cpn.Brand = result.data
         });

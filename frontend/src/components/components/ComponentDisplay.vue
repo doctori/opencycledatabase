@@ -36,8 +36,8 @@
 </template>
 
 <script>
-import http from "../../common/http-common";
-import ImagesService from '../../services/ImagesService'
+import BackendApiClient from '../../services/BackendApiClient';
+import ImagesService from '../../services/ImagesService';
 export default {
   name: 'ComponentDisplay',
   props: {
@@ -74,7 +74,7 @@ export default {
   },
   methods: {
     deleteComponent(){
-      http.delete('/components/'+this.componentInput.ID)
+      BackendApiClient.delete('/components/'+this.componentInput.ID)
       this.$emit('delete-component',this.componentInput)
       this.componentInput = null
     }

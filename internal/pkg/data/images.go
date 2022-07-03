@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/doctori/opencycledatabase/internal/pkg/api/utils"
 	log "github.com/sirupsen/logrus"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -29,8 +30,8 @@ type Image struct {
 	ContentType   string             `bson:"contentType"`
 	ContentLength int64              `bson:"contentLength"`
 	Content       []byte             `bson:"-"`
-	PutNotSupported
-	DeleteNotSupported
+	utils.PutNotSupported
+	utils.DeleteNotSupported
 }
 
 // Get will return the image (content type is image/jpeg)

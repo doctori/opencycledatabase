@@ -20,6 +20,14 @@ export default {
     Navigation,
     Header,
     Footer
+  },
+  data() {
+    return {
+    }
+  },
+  provide() {
+    return {}
   }
+
 }
 </script>

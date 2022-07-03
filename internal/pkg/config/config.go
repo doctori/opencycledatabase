@@ -18,9 +18,18 @@ type LogConfig struct {
 	Level int `json:"level"`
 }
 
+// AuthConfig holds strava OAUTH2 Configuration
+type AuthConfig struct {
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"ClientSecret"`
+	RedirectURL  string `json:"redirectURL"`
+	Hostname     string `json:"hostname"`
+}
+
 // Config holds the main configuration of the application
 type Config struct {
-	DB  DBConfig  `json:"db"`
-	API APIConfig `json:"API"`
-	Log LogConfig `json:"log"`
+	DB   DBConfig   `json:"db"`
+	API  APIConfig  `json:"API"`
+	Log  LogConfig  `json:"log"`
+	Auth AuthConfig `json:"auth"`
 }

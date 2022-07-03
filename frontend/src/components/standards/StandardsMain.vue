@@ -44,7 +44,7 @@
 </template>
 
 <script>
-import http from "../../common/http-common";
+import BackendApiClient from '../../services/BackendApiClient';
 import StandardDisplay from './StandardDisplay';
 import StandardCreate from './StandardCreate';
 import UtilService from '../../services/UtilService';
@@ -68,7 +68,7 @@ export default {
     }
   },
   mounted(){
-    http.get("/standards")
+    BackendApiClient.get("/standards")
     .then(response => {
       // build standard type list : 
       response.data.forEach(std => {
@@ -105,7 +105,7 @@ export default {
     },
     setSelectedType(selectedType){
       this.selectedStandard.Type = selectedType
-      http.get("/standards/"+selectedType.toLowerCase())
+      BackendApiClient.get("/standards/"+selectedType.toLowerCase())
       .then(response =>{
         this.standards = response.data
 
@@ -113,7 +113,7 @@ export default {
 
     },
     setSelectedStandard(standardID){
-      http.get("/standards/"+standardID)
+      BackendApiClient.get("/standards/"+standardID)
       .then(response => {
         this.selectedStandard = response.data
         console.log(this.selectedStandard)

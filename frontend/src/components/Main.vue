@@ -12,6 +12,7 @@
     that should help you know what components are compatible with your bike. (soon)
   </v-container>
   </v-container>
+
 </template>
 
 

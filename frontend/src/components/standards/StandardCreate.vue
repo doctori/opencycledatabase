@@ -139,6 +139,7 @@
 
 <script>
 import http from '../../common/http-common';
+import BackendApiClient from '../../services/BackendApiClient';
 import UtilService from '../../services/UtilService';
 export default {
   name: 'StandardCreate',
@@ -187,7 +188,7 @@ export default {
         this.countryList = response.data
       )
     );
-    http
+    BackendApiClient
       .get("/brands")
       .then(response => (
         this.brands = response.data
@@ -212,7 +213,7 @@ export default {
     },
     getStandards(type){
       this.loading = true;
-      http
+      BackendApiClient
       .get("/standards/"+type.toLowerCase())
       .then(response =>{
         var thisNestedStandard = []
@@ -231,7 +232,7 @@ export default {
       })
     },
     getPossibleCompatibleStandard(type){
-      http
+      BackendApiClient
         .get("/standards/"+type.toLowerCase(),{
           params: {
             compatible_types_only: true
@@ -240,7 +241,7 @@ export default {
         .then(response => {
           this.possibleCompatibleStandards = []
           response.data.forEach(type => {
-          http
+          BackendApiClient
             .get("/standards/"+type.toLowerCase(),{
             })
             .then(response => {
@@ -253,7 +254,7 @@ export default {
     getStandardDefintion(type){
       if (type != ""){
         this.loading = true;
-        http
+        BackendApiClient
         .get("/standards/"+type.toLowerCase(),{
           params: {
             struct_only: true
@@ -288,7 +289,7 @@ export default {
       this.std[field]=value
     },
     submitStandard(){
-      http
+      BackendApiClient
       .post('/standards/'+this.std.Type.toLowerCase(),this.std)
       .then(result => {
         this.std = result.data,

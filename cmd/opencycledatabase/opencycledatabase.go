@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/doctori/opencycledatabase/internal/pkg/api"
+	"github.com/doctori/opencycledatabase/internal/pkg/api/auth"
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
 	"github.com/doctori/opencycledatabase/internal/pkg/data"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -43,4 +44,5 @@ func init() {
 	log.SetLevel(log.Level(conf.Log.Level))
 	log.Info("Init Phase of OCD")
 	db = data.InitDB(conf)
+	auth.InitStravaConfig(conf.Auth)
 }

@@ -13,6 +13,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/doctori/opencycledatabase/internal/pkg/api/utils"
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -40,7 +41,7 @@ type Bike struct {
 	Images            []Image            `bson:"images"`
 	Components        []Component
 	SupportedStandard []standards.Standard
-	PutNotSupported
+	utils.PutNotSupported
 }
 
 // Should Return Errors !!

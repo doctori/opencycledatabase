@@ -82,7 +82,7 @@
 </template>
 
 <script>
-import http from "../../common/http-common";
+import BackendApiClient from '../../services/BackendApiClient';
 import ComponentDisplay from "./ComponentDisplay";
 import ComponentCreate from './ComponentCreate';
 import UtilService from '../../services/UtilService';
@@ -111,17 +111,17 @@ export default {
   },
   mounted(){
     // retrieve the typesList
-    http.get("/standards")
+    BackendApiClient.get("/standards")
     .then(response =>{
       this.typesList = response.data
     })
     // retrieve components (should we???)
-    http.get("/components")
+    BackendApiClient.get("/components")
     .then(response => {
       this.components = response.data
     });
     // retrieve Brands
-    http.get("/brands")
+    BackendApiClient.get("/brands")
     .then(response=>{
       this.brands = response.data
     });
@@ -146,7 +146,7 @@ export default {
       console.log("Filter is standard : ["+this.selectedStandard+"] ");
       console.log("Filter is Brand : ["+this.selectedBrand+"] ");
       this.loading = true
-      http.get("/components",{
+      BackendApiClient.get("/components",{
         params: filters
       }).then(response => {
         if (response.length != 0){
@@ -187,14 +187,14 @@ export default {
     setSelectedType(selectedType){
       this.selectedType = selectedType
       this.selectedStandard = 0
-      http.get("/standards/"+selectedType.toLowerCase())
+      BackendApiClient.get("/standards/"+selectedType.toLowerCase())
       .then(response =>{
         this.standards = response.data
       })
     },
     setSelectedStandard(selectedStandard){
       this.selectedStandard = selectedStandard
-      http.get("/components",{
+      BackendApiClient.get("/components",{
         params:{
           standard: selectedStandard
         }

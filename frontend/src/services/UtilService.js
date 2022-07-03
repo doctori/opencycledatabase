@@ -7,5 +7,4 @@ class UtilService {
         .join('_');
     }
 }
-
 export default new UtilService();

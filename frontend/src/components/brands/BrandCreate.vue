@@ -75,6 +75,7 @@
 
 <script>
 import http from '../../common/http-common'
+import BackendApiClient from '../../services/BackendApiClient'
 import UploadImage from './../UploadImages'
 import ImagesService from '../../services/ImagesService'
 export default {
@@ -129,7 +130,7 @@ export default {
     submitBrand(){
       if (this.brand.ID != 0 && this.brand.ID != undefined){
         console.log("we'll update the Brand "+this.brand.Name)
-        http.post('/brands/'+this.brand.ID,this.brand)
+        BackendApiClient.post('/brands/'+this.brand.ID,this.brand)
         .then(result => (
           this.brand = result.data,
           this.saved = true
@@ -139,7 +140,7 @@ export default {
           this.saveError = error
         })
       }else{
-        http.post('/brands',this.brand)
+        BackendApiClient.post('/brands',this.brand)
         .then(result => (
           this.brand = result.data,
           this.saved = true

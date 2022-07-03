@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/doctori/opencycledatabase/internal/pkg/api/auth"
 	"github.com/doctori/opencycledatabase/internal/pkg/config"
 	"github.com/doctori/opencycledatabase/internal/pkg/data"
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
@@ -22,7 +23,7 @@ func (api *API) Init(db *mongo.Database, conf *config.Config) {
 	bike := new(data.Bike)
 	component := new(data.Component)
 	image := new(data.Image)
-
+	login := new(auth.Login)
 	// static content
 	api.addStaticDir("./upload")
 	// TODO : use Gorilla Mux ??
@@ -41,6 +42,7 @@ func (api *API) Init(db *mongo.Database, conf *config.Config) {
 	api.addStandard(db, standards.NewFrame())
 	api.addStandard(db, standards.NewSeatTube())
 	api.AddResource(db, &data.Brand{}, "/brands")
+	api.AddResource(db, login, "/exchange-token")
 	http.HandleFunc("/standards", api.returnStandardsLists())
 	api.AddNonJSONResource(db, image, "/images")
 

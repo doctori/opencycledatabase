@@ -10,6 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/doctori/opencycledatabase/internal/pkg/api/utils"
 	"github.com/doctori/opencycledatabase/internal/pkg/data/standards"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,7 +31,7 @@ type Component struct {
 	Standards   []standards.Standard `bson:"standards"`
 	Images      []Image              `bson:"images"`
 	Year        string               `bson:"year"`
-	PutNotSupported
+	utils.PutNotSupported
 }
 
 // ComponentInt : the standard COmponent interface that needs to complies to in order to be a component

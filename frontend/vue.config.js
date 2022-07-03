@@ -1,6 +1,12 @@
 module.exports = {
   devServer: {
-      proxy: 'http://localhost:8081',
+      public: "ocd.io",
+      proxy: {
+        '^/api': {
+          target: 'http://localhost:8081',
+          pathRewrite: {'^/api':''}
+        }
+      }
   },
 
   chainWebpack: config => {

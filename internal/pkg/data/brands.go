@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/doctori/opencycledatabase/internal/pkg/api/utils"
 	log "github.com/sirupsen/logrus"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,17 +19,17 @@ const brandCollection = "brands"
 
 // Brand hold the brand defintion
 type Brand struct {
-	ID                 primitive.ObjectID `bson:"_id"`
-	Name               string             `bson:"name"`
-	Description        string             `bson:"description"`
-	Image              primitive.ObjectID `bson:"image"`
-	CreationYear       int                `bson:"creationYear"`
-	EndYear            int                `bson:"endYear"`
-	Country            string             `bson:"country"`
-	WikiHref           string             `bson:"wikiHref"`
-	Href               string             `bson:"href"`
-	PutNotSupported    `bson:"-"`
-	DeleteNotSupported `bson:"-"`
+	ID                       primitive.ObjectID `bson:"_id"`
+	Name                     string             `bson:"name"`
+	Description              string             `bson:"description"`
+	Image                    primitive.ObjectID `bson:"image"`
+	CreationYear             int                `bson:"creationYear"`
+	EndYear                  int                `bson:"endYear"`
+	Country                  string             `bson:"country"`
+	WikiHref                 string             `bson:"wikiHref"`
+	Href                     string             `bson:"href"`
+	utils.PutNotSupported    `bson:"-"`
+	utils.DeleteNotSupported `bson:"-"`
 }
 
 // Get will return the asked Brand

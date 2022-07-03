@@ -20,27 +20,22 @@
           </v-btn>
         </template>
             <v-list>
-          <v-list-item
-            v-for="n in 5"
-            :key="n"
-            @click="() => {}"
-          >
-            <v-list-item-title>Option {{ n }}</v-list-item-title>
+          <v-list-item >
+            <router-link :to="{name: 'Profile'}">
+            <v-list-item-title>Login</v-list-item-title>
+            </router-link>
           </v-list-item>
         </v-list>
       </v-menu>
     </v-app-bar>
+
 </div>
 </template>
 
 <script>
-
 export default {
   name: 'Header',
-  data(){
-    return{
-    }
- },
+  methods: {},
 }
 </script>
 
