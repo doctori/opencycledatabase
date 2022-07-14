@@ -1,11 +1,9 @@
 <template>
-    <LoginDialog @logged="this.displayProfile" @gerard="this.printGerard"/>
-    <ProfileInfo v-if="user"/>
+    <ProfileInfo/>
 </template>
 
 <script>
 // @ is an alias to /src
-import LoginDialog from '@/components/utils/LoginDialog.vue'
 import ProfileInfo from '@/components/utils/ProfileInfo.vue'
 
 export default {
@@ -30,7 +28,6 @@ export default {
     }
   },
   components: {
-    LoginDialog,
     ProfileInfo
   }
 }

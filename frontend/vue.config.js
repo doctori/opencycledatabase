@@ -1,6 +1,7 @@
 module.exports = {
   devServer: {
       public: "ocd.io",
+      headers: { "Access-Control-Allow-Origin": "*" },
       proxy: {
         '^/api': {
           target: 'http://localhost:8081',
