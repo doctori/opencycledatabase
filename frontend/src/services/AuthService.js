@@ -119,7 +119,7 @@ class AuthService {
   * This allows us to reference it using "this.$auth" whenever we are inside of a Vue context.
   */
  export default {
-   install: function (Vue) {
-     Vue.prototype.$auth = authService
+   install: function (app) {
+     app.config.globalProperties.$auth = authService
    }
  }

@@ -1,14 +1,24 @@
-import Vue from 'vue'
+import { createApp } from 'vue'
+import { useI18n } from 'vue-i18n'
 import App from './App.vue'
-import vuetify from './plugins/vuetify';
-import router from './router'
-import i18n from './i18n'
+
+// vuetify
+import 'vuetify/styles'
+import { createVuetify } from 'vuetify'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
 import AuthService from '@/services/AuthService'
-Vue.config.productionTip = false
-Vue.use(AuthService)
-new Vue({
-  vuetify,
-  router,
-  i18n,
-  render: h => h(App)
-}).$mount('#app')
+import router from '@/router'
+import i18n from './i18n'
+
+const vuetify = createVuetify({
+  components,
+  directives
+})
+
+const app = createApp(App)
+  .use(AuthService)
+  .use(vuetify)
+  .use(router)
+  .use(i18n)
+  .mount('#app')

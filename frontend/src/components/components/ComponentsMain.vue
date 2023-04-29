@@ -10,9 +10,9 @@
     <v-row>
       <v-col cols="2">
         <v-autocomplete v-model="selectedType"
-          v-on:change="setSelectedType(selectedType)"
+          v-on:change="setSelectedType()"
           :items="typesList" 
-          item-text="Type" 
+          item-title="Type" 
           item-value="Type" 
           :label="$t('components.type')"
           dense
@@ -27,7 +27,7 @@
       <v-col cols="2">
         <v-autocomplete v-model="selectedStandard"
           :items="standards" 
-          item-text="Name" 
+          item-title="Name" 
           item-value="ID" 
           :label="$t('components.standard')"
           dense
@@ -37,7 +37,7 @@
         <v-autocomplete v-model="selectedBrand"
           :items="brands" 
           v-on:change="setSelectedBrand(selectedBrand)"
-          item-text="Name" 
+          item-title="Name" 
           item-value="ID" 
           :label="$t('messages.brand')"
           dense
@@ -99,7 +99,7 @@ export default {
       brands: [],
       components : [],
       componentID : '',
-      selectedType: Object,
+      selectedType: '',
       selectedComponent : Object,
       selectedStandard: -1,
       selectedBrand: "",
@@ -113,7 +113,8 @@ export default {
     // retrieve the typesList
     BackendApiClient.get("/standards")
     .then(response =>{
-      this.typesList = response.data
+      this.typesList = response.data;
+      this.setSelectedType();
     })
     // retrieve components (should we???)
     BackendApiClient.get("/components")
@@ -125,6 +126,15 @@ export default {
     .then(response=>{
       this.brands = response.data
     });
+  },
+  watch: {
+    selectedType(val) {
+      console.log("Updated Type is "+ val)
+      BackendApiClient.get("/standards/"+this.selectedType.toLowerCase())
+        .then(response =>{
+          this.standards = response.data
+        })
+    }
   },
   methods: {
     camelToSnakeCase(str){
@@ -184,13 +194,13 @@ export default {
     setSelectedBrand(selectedBrand){
       this.selectedBrand = selectedBrand
     },
-    setSelectedType(selectedType){
-      this.selectedType = selectedType
-      this.selectedStandard = 0
-      BackendApiClient.get("/standards/"+selectedType.toLowerCase())
-      .then(response =>{
-        this.standards = response.data
-      })
+    setSelectedType(){
+        this.selectedStandard = 0
+        console.log("Standard selected"+this.selectedType);
+        BackendApiClient.get("/standards/"+this.selectedType.toLowerCase())
+        .then(response =>{
+          this.standards = response.data
+        })
     },
     setSelectedStandard(selectedStandard){
       this.selectedStandard = selectedStandard

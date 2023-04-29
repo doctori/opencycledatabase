@@ -1,9 +1,8 @@
 <template>
 <div>
-    <v-navigation-drawer app>
-      <v-container>
-        <v-row class="text-center">
-          <v-col>
+    <v-navigation-drawer>
+      <v-list nav>
+          <v-list-item>
             <v-img
               :src="logo"
               />
@@ -14,15 +13,15 @@
                 OCD
               </h4>
             </router-link>
-          </v-col>
-          <v-col >
+          </v-list-item>
+          <v-list-item >
             <p class="subheading font-weight-regular">
               {{ $t("messages.welcome_nav") }}
 
             </p>
-          </v-col>
+          </v-list-item>
 
-          <v-col
+          <v-list-item
             class="mb-5"
             cols="12"
           >
@@ -32,9 +31,9 @@
             </h2>
           </router-link>
 
-          </v-col>
+          </v-list-item>
 
-          <v-col
+          <v-list-item
             class="mb-5"
             cols="12"
           >
@@ -44,9 +43,9 @@
               {{ $t('messages.components')}}
             </h2>
           </router-link>
-          </v-col>
+          </v-list-item>
 
-          <v-col
+          <v-list-item
             class="mb-5"
             cols="12"
           >
@@ -57,9 +56,8 @@
               Brands
             </h2>
           </router-link>
-          </v-col>
-        </v-row>
-      </v-container>
+          </v-list-item>
+      </v-list>
     </v-navigation-drawer>
 </div>
 </template>
